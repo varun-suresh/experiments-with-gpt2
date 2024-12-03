@@ -75,24 +75,24 @@ Weights = 768 * 1
 When finetuning, about 14M parameters are being modified (14M out of 124M).
 
 ### Fine Tuning with LoRA
-When using LoRA, the pre-trained weights are unchanged. It introduces two matrices A and B whose product is added to the weight matrix. Let's consider a concrete example:
+When using LoRA, the pre-trained weights are unchanged. It introduces two matrices $\ A $ and $\ B $ whose product is added to the weight matrix. Let's consider a concrete example:
 
-Let W_k be a weights matrix. In this case, let's consider the keys weight in a transformer block. The weights have the dimension 768 * 768 and the bias is a 768 dimensional tensor.
+Let $\ W_k $ be a weights matrix. In this case, let's consider the keys weight in a transformer block. The weights have the dimension 768 * 768 and the bias is a 768 dimensional tensor.
 
 Instead of modifying this large matrix, we can write 
-```
-math
-$\ W_k = W_k + $\Delta$ W \$
-```
 
-$\ Delta W = AB^T \$
+$\ W_k = W_k + \Delta W $
 
-where A and B are two low rank matrices of dimension 768 * 8 . AB^T will result in a matrix of dimension 768 * 768, but the number of learned parameters are 768 * 8 * 2 = 12288 parameters for a transformer block, significantly lower than ~7M parameters when fine tuning all the parameters.
+$\ \Delta W = AB^T $
+
+where $\ A  $ and $\ B $ are two low rank matrices of dimension 768 * 8 . $\ AB^T $ will result in a matrix of dimension 768 * 768, but the number of learned parameters are 768 * 8 * 2(A and B) * 2(Keys and Weights matrix) = 24576 parameters for , significantly lower than ~7M parameters when fine tuning all the parameters.
 
 ## Results
-
 Since I considered the last 256 tokens for sentiment classification, I calculated the precision, recall and accuracy by the review length binned by size. As expected, the accuracy goes down slightly as the length of the review gets larger ( More of the review gets ignored as it gets longer).
 
+![Train Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/sentiment-classifucation/Loss_train.svg)
+
+![Validation Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/sentiment-classifucation/Loss_val.svg)
 
 **Results for Zero Shot learning**
 
