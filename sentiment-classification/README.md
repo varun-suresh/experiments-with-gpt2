@@ -39,14 +39,14 @@ I used Microsoft's [loralib](https://github.com/microsoft/LoRA) package on the l
 ### Zero Shot Learning
 Given a prompt like "Review: The movie was awesome! Sentiment:", I compare the likelihood of the next token being " Positive" and " Negative" and classify the review.
 
-To try this out, you can use the notebook [sentiment_classification.ipynb](). You can try out different prompts by modifying [reviewsDataset.py]()
+To try this out, you can use the notebook [sentiment_classification.ipynb](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/sentiment_classification.ipynb). You can try out different prompts by modifying [reviewsDataset.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/reviewsDataset.py#L17)
 
 I tried a few prompts and the results varied quite a lot. An additional space ("Positive" and " Positive") results in different tokens and the model is quite sensitive to these prompts. Among the few prompts I tried, the one I used eventually had the best results. 
 
 ### Fine Tuning
 In this setting, I froze the Positional Embedding weights, Token Encoding weights and the first 10 transformer blocks. Instead of the language modeling head, I used a binary classification head (a fully-connected layer with just one output followed by a sigmoid to make the output between 0 and 1 where 0 is negative and 1 is positive). I used the binary cross entropy loss function. 
 
-To fine-tune the model, you can use the notebook [sentiment_classification.ipynb](). The model parameters are in [gpt_config.py]() and the training parameters are in [train_config.py](). The evaluation code is in [eval.py]().
+To fine-tune the model, you can use the notebook [sentiment_classification.ipynb](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/sentiment_classification.ipynb). The model parameters are in [gpt_config.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/gpt_config.py) and the training parameters are in [train_config.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/train_config.py). The evaluation code is in [eval.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/eval.py). The training and fine-tuning can all be run from the sentiment classification notebook.
 
 Learnings:
 1. To avoid vanishing/exploding gradients, I clipped the gradients at 5.
@@ -81,9 +81,12 @@ Let W_k be a weights matrix. In this case, let's consider the keys weight in a t
 
 Instead of modifying this large matrix, we can write 
 ```
-W_k = W_k + $\Delta$ W
-$\Delta$ W = AB^T
+math
+$\ W_k = W_k + $\Delta$ W \$
 ```
+
+$\ Delta W = AB^T \$
+
 where A and B are two low rank matrices of dimension 768 * 8 . AB^T will result in a matrix of dimension 768 * 768, but the number of learned parameters are 768 * 8 * 2 = 12288 parameters for a transformer block, significantly lower than ~7M parameters when fine tuning all the parameters.
 
 ## Results
