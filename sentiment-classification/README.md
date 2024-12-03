@@ -90,9 +90,9 @@ where $\ A  $ and $\ B $ are two low rank matrices of dimension 768 * 8 . $\ AB^
 ## Results
 Since I considered the last 256 tokens for sentiment classification, I calculated the precision, recall and accuracy by the review length binned by size. As expected, the accuracy goes down slightly as the length of the review gets larger ( More of the review gets ignored as it gets longer).
 
-![Train Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/sentiment-classifucation/Loss_train.svg)
+![Train Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/Loss_train.svg)
 
-![Validation Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/sentiment-classifucation/Loss_val.svg)
+![Validation Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/Loss_val.svg)
 
 **Results for Zero Shot learning**
 
