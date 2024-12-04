@@ -1,5 +1,7 @@
 # Sentiment classification using GPT-2
 
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/language-models-are-unsupervised-multitask/sentiment-analysis-on-imdb)](https://paperswithcode.com/sota/sentiment-analysis-on-imdb?p=language-models-are-unsupervised-multitask)
+
 ## Summary
 Using pre-trained GPT-2  weights from [Hugging Face](https://huggingface.co/docs/transformers/en/model_doc/gpt2), I finetuned the model on the [large movie review dataset](https://ai.stanford.edu/~amaas/data/sentiment/) to predict whether a review is positive or negative.
 
