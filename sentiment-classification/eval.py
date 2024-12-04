@@ -12,8 +12,6 @@ from gpt_config import GPTConfig
 from eval_config import EvalConfig
 
 from gpt import GPT
-# dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16'
-# ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
 
 class Eval:
     def __init__(self,test_set: reviewsDataset,eval_config: EvalConfig, model_config: GPTConfig):
@@ -21,7 +19,6 @@ class Eval:
         self.eval_config = eval_config
         self.model_config = model_config
         self.load_model()
-        # self.ctx = nullcontext() if eval_config.device == 'cpu' else torch.amp.autocast(device_type=eval_config.device, dtype=ptdtype)
     def load_model(self):
         if self.model_config.load_from_checkpoint:
             ckpt = torch.load(self.model_config.checkpoint_path,map_location=self.eval_config.device)
@@ -49,7 +46,6 @@ class Eval:
         results_file.write("filename,length,label,prediction\n")
         for batch in tqdm(dl):
             with torch.no_grad():
-                # with self.ctx:
                 logits, _,_ = self.model(batch["input_ids"].to(self.eval_config.device),batch["review_lens"].to(self.eval_config.device))
                 if self.model_config.binary_classification_head:
                     predictions = F.sigmoid(logits)
