@@ -229,6 +229,7 @@ dependencies = [
     { name = "ruff" },
     { name = "tabulate" },
     { name = "tensorboard" },
+    { name = "tensorboard-plugin-customizable-plots" },
     { name = "tiktoken" },
     { name = "torch" },
     { name = "transformers" },
@@ -245,6 +246,7 @@ requires-dist = [
     { name = "ruff", specifier = ">=0.8.1" },
     { name = "tabulate", specifier = ">=0.9.0" },
     { name = "tensorboard", specifier = ">=2.18.0" },
+    { name = "tensorboard-plugin-customizable-plots", specifier = ">=1.1.3" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "torch", specifier = ">=2.5.1" },
     { name = "transformers", specifier = ">=4.46.3" },
@@ -1285,6 +1287,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7a/13/e503968fefabd4c6b2650af21e110aa8466fe21432cd7c43a84577a89438/tensorboard_data_server-0.7.2-py3-none-any.whl", hash = "sha256:7e0610d205889588983836ec05dc098e80f97b7e7bbff7e994ebb78f578d0ddb", size = 2356 },
     { url = "https://files.pythonhosted.org/packages/b7/85/dabeaf902892922777492e1d253bb7e1264cadce3cea932f7ff599e53fea/tensorboard_data_server-0.7.2-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:9fe5d24221b29625dbc7328b0436ca7fc1c23de4acf4d272f1180856e32f9f60", size = 4823598 },
     { url = "https://files.pythonhosted.org/packages/73/c6/825dab04195756cf8ff2e12698f22513b3db2f64925bdd41671bfb33aaa5/tensorboard_data_server-0.7.2-py3-none-manylinux_2_31_x86_64.whl", hash = "sha256:ef687163c24185ae9754ed5650eb5bc4d84ff257aabdc33f0cc6f74d8ba54530", size = 6590363 },
+]
+
+[[package]]
+name = "tensorboard-plugin-customizable-plots"
+version = "1.1.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/02/2385fe084fb1d8fb77fbaeddd44c7bdbfc4a872884d0732c5b04593d1825/tensorboard_plugin_customizable_plots-1.1.3.tar.gz", hash = "sha256:c41050f643422cbb41a968d5176704b49f2cc72bfcc657114ce69738085d90e3", size = 3774004 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/b8/ed6fba65302a3c4323566f2751c076de86d00b400f976bdc667f65ae473f/tensorboard_plugin_customizable_plots-1.1.3-py3-none-any.whl", hash = "sha256:04c5d646c55894bf2361c7d2e0e28c2180506a9d29b291f62df30f42238de7f7", size = 3795721 },
 ]
 
 [[package]]
