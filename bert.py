@@ -14,10 +14,6 @@ class MultiHeadedAttention(nn.Module):
         self.query = nn.Linear(config.embedding_size, config.embedding_size)
         self.key = nn.Linear(config.embedding_size, config.embedding_size)
         self.value = nn.Linear(config.embedding_size, config.embedding_size)
- 
-        # Add dropout for regularization
-        self.resid_dropout = nn.Dropout(config.dropout)
-
 
     def forward(self, x):
         B, T, C = x.shape  # Batch Size, Block Size/ Sequence Length, Embedding Size
@@ -32,18 +28,11 @@ class MultiHeadedAttention(nn.Module):
         ).transpose(1, 2)
         v = v.view(
             B, T, self.config.n_heads, self.config.embedding_size // self.config.n_heads
-        ).transpose(1, 2)
-        # if self.config.debug:
-        #     att = (q @ k.transpose(-2,-1)) * (1.0 * math.sqrt(k.size(-1)))
-        #     att = F.softmax(att,dim=-1)
+        ).transpose(1, 2) 
             
-            
-        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,is_causal=False,dropout_p=self.config.dropout)
+        y = torch.nn.functional.scaled_dot_product_attention(q,k,v)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
-        # y = self.resid_dropout(self.c_proj(y)
 
-        # if self.config.debug:
-        #     return y, att
         return y
 
 class AttentionModule(nn.Module):
@@ -65,10 +54,9 @@ class FFNIntermediate(nn.Module):
     def __init__(self,config):
         super(FFNIntermediate,self).__init__()
         self.dense = nn.Linear(config.embedding_size, 4*config.embedding_size)
-        self.relu = nn.ReLU()
     
     def forward(self,x):
-        return self.relu(self.dense(x))
+        return nn.functional.gelu(self.dense(x))
 
 class FFNOutput(nn.Module):
     def __init__(self, config):
@@ -88,9 +76,9 @@ class EncoderBlock(nn.Module):
         self.output = FFNOutput(config)
 
     def forward(self, x):
-        z = self.attention(x)
-        z = self.intermediate(z)
-        x = self.output(x,z)   
+        att_out = self.attention(x)
+        z = self.intermediate(att_out)
+        x = self.output(att_out,z)   
         return x
 
 
@@ -124,7 +112,6 @@ class BERT(nn.Module):
         x = self.embeddings.LayerNorm(tok_emb + pos_emb + seg_emb)
         for block in self.encoder.layer:
             x = block(x)
-        print(f"Encoder output:{x}")
         # Return the [CLS] hidden state of the last layer
         return x[:,0,:] 
 
@@ -143,6 +130,11 @@ class BERT(nn.Module):
        # Initialize a HF model
         model_hf = BertModel.from_pretrained('bert-base-uncased')
         sd_hf = model_hf.state_dict()
+
+        assert len(sd_hf.keys()) == len(sd.keys())
+        for k, v in sd_hf.items():
+            assert k in sd
+            assert v.size() == sd[k].size()
 
         for k,v in sd_hf.items():
            with torch.no_grad():
