@@ -15,7 +15,7 @@ class MultiHeadedAttention(nn.Module):
         self.key = nn.Linear(config.embedding_size, config.embedding_size)
         self.value = nn.Linear(config.embedding_size, config.embedding_size)
 
-    def forward(self, x):
+    def forward(self, x,attention_mask):
         B, T, C = x.shape  # Batch Size, Block Size/ Sequence Length, Embedding Size
         q = self.query(x)
         k = self.key(x)
@@ -30,7 +30,7 @@ class MultiHeadedAttention(nn.Module):
             B, T, self.config.n_heads, self.config.embedding_size // self.config.n_heads
         ).transpose(1, 2) 
             
-        y = torch.nn.functional.scaled_dot_product_attention(q,k,v)
+        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,attention_mask=attention_mask)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
 
         return y
@@ -45,8 +45,8 @@ class AttentionModule(nn.Module):
             "LayerNorm": nn.LayerNorm(config.embedding_size),
         })
     
-    def forward(self,x):
-        x = x + self.output.dense(self.self(x))
+    def forward(self,x,attention_mask):
+        x = x + self.output.dense(self.self(x,attention_mask))
         x = self.output.LayerNorm(x)
         return x
 
@@ -75,8 +75,8 @@ class EncoderBlock(nn.Module):
         self.intermediate = FFNIntermediate(config)
         self.output = FFNOutput(config)
 
-    def forward(self, x):
-        att_out = self.attention(x)
+    def forward(self, x,attention_mask):
+        att_out = self.attention(x,attention_mask)
         z = self.intermediate(att_out)
         x = self.output(att_out,z)   
         return x
@@ -111,7 +111,7 @@ class BERT(nn.Module):
         seg_emb = self.embeddings.token_type_embeddings(token_type_ids)
         x = self.embeddings.LayerNorm(tok_emb + pos_emb + seg_emb)
         for block in self.encoder.layer:
-            x = block(x)
+            x = block(x,attention_mask)
         # Return the [CLS] hidden state of the last layer
         return x[:,0,:] 
 
