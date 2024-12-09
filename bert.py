@@ -29,8 +29,9 @@ class MultiHeadedAttention(nn.Module):
         v = v.view(
             B, T, self.config.n_heads, self.config.embedding_size // self.config.n_heads
         ).transpose(1, 2) 
-            
-        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,attention_mask=attention_mask)
+        attention_mask = attention_mask.unsqueeze(1).unsqueeze(3).repeat(1,self.config.n_heads,1,T)
+        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,attn_mask=attention_mask)
+        # y = torch.nn.functional.scaled_dot_product_attention(q,k,v)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
 
         return y
@@ -113,7 +114,8 @@ class BERT(nn.Module):
         for block in self.encoder.layer:
             x = block(x,attention_mask)
         # Return the [CLS] hidden state of the last layer
-        return x[:,0,:] 
+        # return torch.mean(x,dim=1)
+        return x
 
         
     @classmethod
