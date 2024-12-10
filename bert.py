@@ -28,8 +28,8 @@ class MultiHeadedAttention(nn.Module):
         ).transpose(1, 2)
         v = v.view(
             B, T, self.config.n_heads, self.config.embedding_size // self.config.n_heads
-        ).transpose(1, 2) 
-        attention_mask = attention_mask.unsqueeze(1).unsqueeze(3).repeat(1,self.config.n_heads,1,T)
+        ).transpose(1, 2)
+        attention_mask = attention_mask.unsqueeze(1).unsqueeze(2).repeat(1,self.config.n_heads,T,1)
         y = torch.nn.functional.scaled_dot_product_attention(q,k,v,attn_mask=attention_mask)
         # y = torch.nn.functional.scaled_dot_product_attention(q,k,v)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
