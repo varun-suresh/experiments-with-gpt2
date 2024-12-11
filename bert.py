@@ -1,3 +1,4 @@
+from typing import List
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -113,9 +114,8 @@ class BERT(nn.Module):
         x = self.embeddings.LayerNorm(tok_emb + pos_emb + seg_emb)
         for block in self.encoder.layer:
             x = block(x,attention_mask)
-        # Return the [CLS] hidden state of the last layer
-        return torch.mean(x,dim=1)
-        # return x[:,0,:]
+        x = self.pooler.dense(torch.mean(x,dim=1))
+        return x 
 
         
     @classmethod
