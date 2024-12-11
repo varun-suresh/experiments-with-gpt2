@@ -1,3 +1,4 @@
+from typing import List
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -28,9 +29,10 @@ class MultiHeadedAttention(nn.Module):
         ).transpose(1, 2)
         v = v.view(
             B, T, self.config.n_heads, self.config.embedding_size // self.config.n_heads
-        ).transpose(1, 2) 
-            
-        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,attention_mask=attention_mask)
+        ).transpose(1, 2)
+        attention_mask = attention_mask.unsqueeze(1).unsqueeze(2).repeat(1,self.config.n_heads,T,1)
+        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,attn_mask=attention_mask)
+        # y = torch.nn.functional.scaled_dot_product_attention(q,k,v)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
 
         return y
@@ -42,7 +44,7 @@ class AttentionModule(nn.Module):
         self.self = MultiHeadedAttention(config)
         self.output = nn.ModuleDict({
             "dense": nn.Linear(config.embedding_size, config.embedding_size),
-            "LayerNorm": nn.LayerNorm(config.embedding_size),
+            "LayerNorm": nn.LayerNorm(config.embedding_size,eps=config.layer_norm_eps),
         })
     
     def forward(self,x,attention_mask):
@@ -62,7 +64,7 @@ class FFNOutput(nn.Module):
     def __init__(self, config):
         super(FFNOutput,self).__init__()
         self.dense = nn.Linear(4*config.embedding_size,config.embedding_size)
-        self.LayerNorm = nn.LayerNorm(config.embedding_size)
+        self.LayerNorm = nn.LayerNorm(config.embedding_size,eps=config.layer_norm_eps)
     
     def forward(self,input,x):
         return self.LayerNorm(input + self.dense(x))
@@ -90,7 +92,7 @@ class BERT(nn.Module):
             "word_embeddings": nn.Embedding(config.vocab_size, config.embedding_size),
             "position_embeddings": nn.Embedding(config.block_size, config.embedding_size),
             "token_type_embeddings": nn.Embedding(2,config.embedding_size),
-            "LayerNorm": nn.LayerNorm(config.embedding_size),
+            "LayerNorm": nn.LayerNorm(config.embedding_size,eps=config.layer_norm_eps),
         })
         self.encoder = nn.ModuleDict({
            "layer": nn.ModuleList(EncoderBlock(config) for _ in range(config.n_layers)),
@@ -112,8 +114,8 @@ class BERT(nn.Module):
         x = self.embeddings.LayerNorm(tok_emb + pos_emb + seg_emb)
         for block in self.encoder.layer:
             x = block(x,attention_mask)
-        # Return the [CLS] hidden state of the last layer
-        return x[:,0,:] 
+        x = self.pooler.dense(torch.mean(x,dim=1))
+        return x 
 
         
     @classmethod
