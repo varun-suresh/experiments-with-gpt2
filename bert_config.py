@@ -10,14 +10,13 @@ class BERTConfig:
     embedding_size: int = 768
     n_heads:int = 12
     n_layers:int = 12
-    pretrained_block_size: int = 1024
     block_size:int = 512
     # Load from a checkpoint
     load_from_checkpoint : bool = False
     checkpoint_path : str = ""
     model_type = "BERT"
     is_causal:bool = False
-
+    layer_norm_eps: float = 1e-12
     # # Training specific params:
     # # LoRA params
     # use_lora:bool = True
