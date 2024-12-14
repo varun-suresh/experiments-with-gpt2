@@ -29,6 +29,8 @@ class BERTConfig:
     # For debugging
     # debug:bool = False
 
+    # Sentence BERT:
+    n_classes: int = 3
     # def __post_init__(self):
     #     if self.model_type not in MODELS:
     #         raise ValueError(f"Invalid model type {self.model_type}")
