@@ -31,8 +31,38 @@ class BERTConfig:
 
     # Sentence BERT:
     n_classes: int = 3
-    # def __post_init__(self):
-    #     if self.model_type not in MODELS:
-    #         raise ValueError(f"Invalid model type {self.model_type}")
-    #     for k,v in MODELS[self.model_type].items():
-    #         setattr(self,k,v)
+
+@dataclass
+class BERTTrainConfig:
+    # I/O
+    out_dir:str = "out"
+    checkpoint_name: str = "bert_ckpt_train.pt"
+    eval_interval:int = 2000
+    eval_iters:int = 100
+    eval_only:bool = False
+    
+    init_from:str = "bert" # 'bert' or 'resume' - it will resume from the latest checkpoint
+    
+    # data
+    batch_size:int = 16
+
+    # AdamW optimizer
+    learning_rate:float = 2e-5
+    max_iters:int = 300000
+    beta1:float = 0.9
+    beta2:float = 0.95
+    grad_clip:float = 5.0
+
+    # # Learning Rate scheduler : StepLR
+    # warmup_iters:int = 2000
+    # lr_decay_iters:int = 40000
+    # min_lr: float = 6e-5
+
+    #device
+    device:str = "cuda"
+
+    # Gradient Accumulation
+    micro_batch_size:int = 2   
+
+    # Freeze layers when fine-tuning
+    # freeze_layers:int = 10
