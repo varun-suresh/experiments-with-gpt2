@@ -3,7 +3,6 @@ Sentence BERT
 """
 import torch
 from torch import nn
-from typing import List
 from transformers import BertTokenizer
 import sys
 sys.path.append("/home/varun/projects/experiments-with-gpt2/")
