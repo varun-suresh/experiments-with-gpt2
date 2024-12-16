@@ -36,13 +36,14 @@ class BERTConfig:
 class BERTTrainConfig:
     # I/O
     out_dir:str = "out"
-    checkpoint_name: str = "bert_ckpt_freeze_10.pt"
+    checkpoint_name: str = "bert_ckpt_train.pt"
     eval_interval:int = 2000
     eval_iters:int = 100
     eval_only:bool = False
     
     init_from:str = "bert" # 'bert' or 'resume' - it will resume from the latest checkpoint
-    
+    always_save_checkpoint:bool = True
+
     # data
     batch_size:int = 16
 
@@ -62,7 +63,7 @@ class BERTTrainConfig:
     device:str = "cuda"
 
     # Gradient Accumulation
-    micro_batch_size:int = 2 
+    micro_batch_size:int = 8 
 
     # Freeze layers when fine-tuning
-    freeze_layers:int = 10
+    freeze_layers:int = 0
