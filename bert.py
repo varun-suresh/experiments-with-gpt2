@@ -32,7 +32,6 @@ class MultiHeadedAttention(nn.Module):
         ).transpose(1, 2)
         attention_mask = attention_mask.unsqueeze(1).unsqueeze(2).repeat(1,self.config.n_heads,T,1)
         y = torch.nn.functional.scaled_dot_product_attention(q,k,v,attn_mask=attention_mask)
-        # y = torch.nn.functional.scaled_dot_product_attention(q,k,v)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
 
         return y
@@ -51,36 +50,25 @@ class AttentionModule(nn.Module):
         x = x + self.output.dense(self.self(x,attention_mask))
         x = self.output.LayerNorm(x)
         return x
-
-class FFNIntermediate(nn.Module):
-    def __init__(self,config):
-        super(FFNIntermediate,self).__init__()
-        self.dense = nn.Linear(config.embedding_size, 4*config.embedding_size)
-    
-    def forward(self,x):
-        return nn.functional.gelu(self.dense(x))
-
-class FFNOutput(nn.Module):
-    def __init__(self, config):
-        super(FFNOutput,self).__init__()
-        self.dense = nn.Linear(4*config.embedding_size,config.embedding_size)
-        self.LayerNorm = nn.LayerNorm(config.embedding_size,eps=config.layer_norm_eps)
-    
-    def forward(self,input,x):
-        return self.LayerNorm(input + self.dense(x))
     
 class EncoderBlock(nn.Module):
     def __init__(self, config):
         super(EncoderBlock, self).__init__()
         self.config = config
         self.attention = AttentionModule(config) 
-        self.intermediate = FFNIntermediate(config)
-        self.output = FFNOutput(config)
 
-    def forward(self, x,attention_mask):
-        att_out = self.attention(x,attention_mask)
-        z = self.intermediate(att_out)
-        x = self.output(att_out,z)   
+        self.intermediate = nn.ModuleDict({
+            "dense": nn.Linear(config.embedding_size,4*config.embedding_size),
+        })
+        self.output = nn.ModuleDict({
+            "dense": nn.Linear(4*config.embedding_size,config.embedding_size),
+            "LayerNorm": nn.LayerNorm(config.embedding_size,eps=config.layer_norm_eps),
+        })
+
+    def forward(self, input,attention_mask):
+        att_out = self.attention(input,attention_mask)
+        intermediate = nn.functional.gelu(self.intermediate.dense(att_out))
+        x = self.output.LayerNorm(att_out + self.output.dense(intermediate))
         return x
 
 
