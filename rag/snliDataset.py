@@ -3,7 +3,6 @@
 import os
 import json
 
-
 import torch
 from torch.utils.data import Dataset
 from transformers import BertTokenizer
@@ -62,34 +61,24 @@ class sentenceBERTDataset(Dataset):
     """
     Dataset to train and test sentence BERT
     """
-    def __init__(self, split:str, cache_dir:str = "/home/varun/Downloads/snli_1.0/",recreate:bool=False):
-        assert split in ["train", "test", "dev"]
-        data_file = open(os.path.join(cache_dir,f"snli_1.0_{split}.jsonl")).readlines()
-        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        cache_fpath = os.path.join(cache_dir,f"sentenceBERT_{split}.pt")
-        if not os.path.exists(cache_fpath) or recreate:
-            self.data = []
-            for i,line in enumerate(data_file):
-                d = json.loads(line)
-                if d["gold_label"] == "-":
-                    continue
-                self.data.append({"label": MAPPING[d["gold_label"]],
-                "sentence_1": sentence(**tokenizer(d["sentence1"],return_tensors="pt")),
-                "sentence_2": sentence(**tokenizer(d["sentence2"],return_tensors="pt"))})
-            torch.save({"data": self.data}, cache_fpath)
-        else:
-            print(f"Loading extracted data from {cache_fpath}")
-            self.data = torch.load(cache_fpath)["data"]
+    def __init__(self, split:str,cache_dir: str = "/home/varun/Downloads/snli_1.0/"):
+        assert split in ["train","test","dev"]
+        self.data_file = open(os.path.join(cache_dir,f"snli_1.0_{split}.jsonl")).readlines()
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data_file)
 
     def __getitem__(self,idx:int):
-        return self.data[idx]
+        item = json.loads(self.data_file[idx])
+        sentence_1 = sentence(**self.tokenizer(item['sentence1'], return_tensors="pt"))
+        sentence_2 = sentence(**self.tokenizer(item['sentence2'], return_tensors="pt"))
+        label = MAPPING[item['gold_label']] 
+        return {"sentence_1": sentence_1, "sentence_2": sentence_2,"label": label}
 
 if __name__ == "__main__":
-    sd = snliDataset("dev")
+    sd = sentenceBERTDataset("train")
     for item in sd:
-        print(f"Sentence1: {item['sentence1']}, Sentence2: {item['sentence2']}")
+        print(f"Sentence1: {item['sentence_1']}, Sentence2: {item['sentence_2']}")
         break
     
