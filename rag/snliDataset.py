@@ -73,7 +73,10 @@ class sentenceBERTDataset(Dataset):
         item = json.loads(self.data_file[idx])
         sentence_1 = sentence(**self.tokenizer(item['sentence1'], return_tensors="pt"))
         sentence_2 = sentence(**self.tokenizer(item['sentence2'], return_tensors="pt"))
-        label = MAPPING[item['gold_label']] 
+        label = item['gold_label']
+        if label == "-":
+            label = item['annotator_labels'][0]
+        label = MAPPING[label]
         return {"sentence_1": sentence_1, "sentence_2": sentence_2,"label": label}
 
 if __name__ == "__main__":

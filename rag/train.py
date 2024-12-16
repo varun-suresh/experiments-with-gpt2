@@ -86,7 +86,7 @@ class Trainer:
                 self.writer.add_scalar("Loss/train",losses["train"], self.iter_num)
                 self.writer.add_scalar("Loss/val", losses["val"],self.iter_num)
                  
-                if losses["val"] < best_val_loss:
+                if losses["val"] < best_val_loss or self.train_config.always_save_checkpoint:
                     best_val_loss = losses["val"]
                     if self.iter_num > start_iter:
                         ckpt = {"model": self.model.state_dict(),
@@ -103,7 +103,7 @@ class Trainer:
             
             batch = next(iter(dl))
             logits = self.model(batch["sentence_1"], batch["sentence_2"])
-            loss = self.criterion(logits, batch["label"].to(self.train_config.device)) / (len(batch) * accumulation_steps)
+            loss = self.criterion(logits, batch["label"].to(self.train_config.device)) / (self.train_config.micro_batch_size * accumulation_steps)
             loss.backward()
  
 
