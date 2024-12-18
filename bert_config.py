@@ -14,7 +14,7 @@ class BERTConfig:
     # Load from a checkpoint
     load_from_checkpoint : bool = False
     checkpoint_path : str = ""
-    model_type = "BERT"
+    model_type = "bert"
     is_causal:bool = False
     layer_norm_eps: float = 1e-12
     # # Training specific params:
@@ -49,7 +49,7 @@ class BERTTrainConfig:
 
     # AdamW optimizer
     learning_rate:float = 2e-5
-    max_iters:int = 300000
+    max_iters:int = 200000
     beta1:float = 0.9
     beta2:float = 0.95
     grad_clip:float = 5.0
