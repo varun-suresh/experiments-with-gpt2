@@ -61,9 +61,14 @@ class sentenceBERTDataset(Dataset):
     """
     Dataset to train and test sentence BERT
     """
-    def __init__(self, split:str,cache_dir: str = "/home/varun/Downloads/snli_1.0/"):
+    def __init__(self, split:str,cache_dir: str = "/home/varun/Downloads/"):
         assert split in ["train","test","dev"]
-        self.data_file = open(os.path.join(cache_dir,f"snli_1.0_{split}.jsonl")).readlines()
+        self.data_file = open(os.path.join(cache_dir,"snli_1.0",f"snli_1.0_{split}.jsonl")).readlines()
+        if split == "train":
+            self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}.jsonl")).readlines())
+        elif split=="dev":
+            self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_matched.jsonl")).readlines())
+            self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_mismatched.jsonl")).readlines())
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     def __len__(self):
@@ -71,17 +76,17 @@ class sentenceBERTDataset(Dataset):
 
     def __getitem__(self,idx:int):
         item = json.loads(self.data_file[idx])
-        sentence_1 = sentence(**self.tokenizer(item['sentence1'], return_tensors="pt"))
-        sentence_2 = sentence(**self.tokenizer(item['sentence2'], return_tensors="pt"))
+        sentence1 = item["sentence1"]
+        sentence2 = item["sentence2"]
         label = item['gold_label']
         if label == "-":
             label = item['annotator_labels'][0]
         label = MAPPING[label]
-        return {"sentence_1": sentence_1, "sentence_2": sentence_2,"label": label}
+        return {"sentence1": sentence1, "sentence2": sentence2,"label": label}
 
 if __name__ == "__main__":
     sd = sentenceBERTDataset("train")
     for item in sd:
-        print(f"Sentence1: {item['sentence_1']}, Sentence2: {item['sentence_2']}")
+        print(f"Sentence1: {item['sentence1']}, Sentence2: {item['sentence2']}")
         break
     
