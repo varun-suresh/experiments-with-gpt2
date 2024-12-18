@@ -1,6 +1,7 @@
 import torch
 from dataclasses import dataclass
 from torch.nn.utils.rnn import pad_sequence
+from transformers import BertTokenizer
 
 @dataclass
 class sentence:
@@ -21,12 +22,15 @@ def pad_sentences(s):
     attention_mask_padded = pad_sequence(attention_mask,batch_first=True,padding_value=0)
 
     return {"input_ids": input_ids_padded, "token_type_ids":token_type_ids_padded, "attention_mask": attention_mask_padded}
-    
+
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+
 def dynamic_padding(data):
-    s1 = [item["sentence_1"] for item in data]
-    s2 = [item["sentence_2"] for item in data]
+    s1 = [tokenizer(item["sentence1"],return_tensors="pt") for item in data]
+    s2 = [tokenizer(item["sentence2"],return_tensors="pt") for item in data]
     s1_padded = sentence(**pad_sentences(s1))
     s2_padded = sentence(**pad_sentences(s2))
-    label = torch.tensor([item["label"] for item in data])
+    label = torch.tensor([item["score"] for item in data])
+    # label = torch.tensor([item["label"] for item in data])
 
-    return {"sentence_1": s1_padded, "sentence_2": s2_padded,"label": label}
+    return {"sentence1": s1_padded, "sentence2": s2_padded,"label": label}

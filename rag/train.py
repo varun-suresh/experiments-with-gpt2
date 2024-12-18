@@ -102,7 +102,7 @@ class Trainer:
                         torch.save(ckpt, output_path)
             
             batch = next(iter(dl))
-            logits = self.model(batch["sentence_1"], batch["sentence_2"])
+            logits = self.model(batch["sentence1"], batch["sentence2"])
             loss = self.criterion(logits, batch["label"].to(self.train_config.device)) / (self.train_config.micro_batch_size * accumulation_steps)
             loss.backward()
  
@@ -116,10 +116,10 @@ class Trainer:
         with torch.no_grad():
             for i in range(self.train_config.eval_iters):
                 train_batch = next(iter(train_dl))
-                train_logits = self.model(train_batch["sentence_1"], train_batch["sentence_2"])
+                train_logits = self.model(train_batch["sentence1"], train_batch["sentence2"])
                 train_loss += self.criterion(train_logits, train_batch["label"].to(self.train_config.device))
                 val_batch = next(iter(val_dl))
-                val_logits =  self.model(val_batch["sentence_1"], val_batch["sentence_2"])
+                val_logits =  self.model(val_batch["sentence1"], val_batch["sentence2"])
                 val_loss += self.criterion(val_logits, val_batch["label"].to(self.train_config.device))
         
         losses = {}
