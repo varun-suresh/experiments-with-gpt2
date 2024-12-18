@@ -87,6 +87,7 @@ class BERT(nn.Module):
         })
         self.pooler = nn.ModuleDict({
             "dense": nn.Linear(config.embedding_size,config.embedding_size),
+            "activation": nn.Tanh()
         })
 
     def forward(self,input_ids,token_type_ids,attention_mask,target=None):
@@ -102,8 +103,9 @@ class BERT(nn.Module):
         x = self.embeddings.LayerNorm(tok_emb + pos_emb + seg_emb)
         for block in self.encoder.layer:
             x = block(x,attention_mask)
-        x = self.pooler.dense(torch.mean(x,dim=1))
-        return x 
+        x = torch.mean(x,dim=1)
+        # x = self.pooler.activation(self.pooler.dense(x[:,0,:]))
+        return x
 
         
     @classmethod
