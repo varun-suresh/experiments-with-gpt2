@@ -10,6 +10,7 @@ sys.path.append("/home/varun/projects/experiments-with-gpt2/")
 from bert import BERT
 from bert_config import BERTConfig
 from bert_utils import sentence
+from time import time
 
 # TODO : Add this in the config
 device = "cuda"
@@ -65,16 +66,15 @@ class sentenceBERT(nn.Module):
         input_ids = torch.vstack(input_ids).int()
         attention_mask = torch.vstack(attention_mask).bool()
         token_type_ids = torch.vstack(token_type_ids).int()
-
-
         output_embeddings = np.zeros((input_ids.size(0),self.config.embedding_size))
         with torch.no_grad():
-            for i in range(0,input_ids.size(0),batch_size):
+            for i in range(0,input_ids.size(0)):
+                start = batch_size * i
                 end = min(batch_size*(i+1),input_ids.size(0))
-                embeddings = self.bert(input_ids[i:end,:].to(device),
-                        token_type_ids[i:end,:].to(device),
-                        attention_mask[i:end,:].to(device)).cpu().numpy()
-                output_embeddings[i:end] = embeddings
+                embeddings = self.bert(input_ids[start:end,:].to(device),
+                        token_type_ids[start:end,:].to(device),
+                        attention_mask[start:end,:].to(device)).cpu().numpy()
+                output_embeddings[start:end] = embeddings
         return output_embeddings, div_text 
 
 
