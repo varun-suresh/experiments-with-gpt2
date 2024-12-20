@@ -35,12 +35,12 @@ class RAG:
         return relevant_docs
     
     def _generate(self,query,relevant_docs):
-        context = " ".join(doc[0] for doc in relevant_docs)
-        input_text = f"Question: {query} Context:{context}"
-        response = self.generate_model.generate(input_text,max_length=50)
-        return response
+        context = " ".join(doc for doc in relevant_docs)
+        input_text = f"Query: {query} Context:{context} Response:"
+        input_text = input_text.replace("\n"," ")
+        response = self.generate_model.generate(input_text,max_new_tokens=10)
+        return f"Query: {query}, Response: {response[len(input_text):]}"
 
     def get_response(self,query):
         relevant_docs = self._retrieve(query=query)
-        return relevant_docs
-        # return self._generate(query,relevant_docs)
+        return self._generate(query,relevant_docs)
