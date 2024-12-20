@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 import math
 import loralib as lora
+import tiktoken
 from gpt_config import GPTConfig
 
 class MultiHeadedAttention(nn.Module):
@@ -176,7 +177,8 @@ class GPT(nn.Module):
             else:
                 loss = None
         else:
-            logits = self.lm_head(torch.stack([x[i,review_lens[i]-1,:] for i in range(len(review_lens))],dim=0))
+            logits = self.lm_head(torch.stack([x[i,[review_lens[i]-1],:] for i in range(len(review_lens))],dim=0))
+            # logits = self.lm_head(x[:,[-1],:])
             if target is not None:
                 loss = F.cross_entropy(logits,target) 
             else:
@@ -264,13 +266,18 @@ class GPT(nn.Module):
         self.classification_head = nn.Linear(self.config.embedding_size,1)
 
     @torch.no_grad()
-    def generate(self, idx:torch.Tensor, max_new_tokens:int, temp:float=1.0, top_k:int=None):
+    def generate(self, text, max_new_tokens:int, temp:float=0.8, top_k:int=None,device="cuda"):
         """
         Take a conditioning sequence and generate max_new_tokens number of tokes. Predictions are fed back in to the model each time
         """
+        tokenizer = tiktoken.get_encoding("gpt2")
+        idx = tokenizer.encode(text,allowed_special={"<|endoftext|>"})
+        idx = torch.tensor([idx]).to(device)
+        # print(f"Size of query: {idx.size()}")
         for _ in range(max_new_tokens):
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
-            logits, _ = self(idx_cond)
+            # print(f"Conditional idx size: {idx_cond.size()}")
+            logits, _,_ = self(idx_cond,review_lens=torch.tensor([idx_cond.size(1)]).to(device))
             logits = logits[:,-1,:]/temp
              # optionally crop the logits to only the top k options
             if top_k is not None:
@@ -280,7 +287,7 @@ class GPT(nn.Module):
             idx_next = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx,idx_next),dim=1)
         
-        return idx
+        return tokenizer.decode(idx[0].tolist())
     
 if __name__ == "__main__":
     config = GPTConfig()

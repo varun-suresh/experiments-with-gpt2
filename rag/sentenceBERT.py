@@ -1,11 +1,13 @@
 """
 Sentence BERT
 """
+import numpy as np
 import torch
 from torch import nn
 from transformers import BertTokenizer
 import sys
 sys.path.append("/home/varun/projects/experiments-with-gpt2/")
+from nltk.tokenize import sent_tokenize
 from bert import BERT
 from bert_config import BERTConfig
 from bert_utils import sentence
@@ -30,6 +32,33 @@ class sentenceBERT(nn.Module):
         combined = torch.cat((u,v,torch.abs(u-v)),dim=1)
         output = self.classification_layer(combined)
         return output
+
+    def encode(self,text,sentences_to_combine,overlap_size,batch_size=16):
+        """
+        open the file, run BERT to extract the embeddings. Return the embeddings
+        """
+        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        sentences = sent_tokenize(text)
+        overlapping_sentences = []
+        for i in range(0,len(sentences),sentences_to_combine-overlap_size):
+            end = min(len(sentences),i+sentences_to_combine)
+            curr_sentence = " ".join(sentences[j] for j in range(i,end))
+            overlapping_sentences.append(curr_sentence)
+     
+
+        encoded = tokenizer(overlapping_sentences,return_tensors="pt",padding=True)           
+        encoded.attention_mask = encoded.attention_mask.bool()
+        output_embeddings = np.zeros((encoded.input_ids.size(0),self.config.embedding_size))
+        with torch.no_grad():
+            for i in range(0,encoded.input_ids.size(0)):
+                start = batch_size * i
+                end = min(batch_size*(i+1),encoded.input_ids.size(0))
+                embeddings = self.bert(encoded.input_ids[start:end,:].to(device),
+                        encoded.token_type_ids[start:end,:].to(device),
+                        encoded.attention_mask[start:end,:].to(device)).cpu().numpy()
+                output_embeddings[start:end] = embeddings
+        return output_embeddings,overlapping_sentences
+
 
 if __name__ == "__main__":
     config = BERTConfig()
