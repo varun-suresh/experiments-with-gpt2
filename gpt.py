@@ -39,7 +39,7 @@ class MultiHeadedAttention(nn.Module):
             att = F.softmax(att,dim=-1)
             
             
-        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,is_causal=True,dropout_p=self.config.dropout)
+        y = torch.nn.functional.scaled_dot_product_attention(q,k,v,is_causal=True,dropout_p=self.config.dropout if self.training else 0)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         y = self.resid_dropout(self.c_proj(y))
 
@@ -157,7 +157,6 @@ class GPT(nn.Module):
         ), f"Sequence length {t} is larger than the block size {self.config.block_size}"
         pos = torch.arange(0, t, dtype=torch.long, device=device)
         tok_emb = self.transformer.wte(idx)
-        # print(f"Token embedding: {tok_emb}")
         pos_emb = self.transformer.wpe(pos)
         x = self.transformer.drop(tok_emb + pos_emb)
         att_out = []
@@ -178,7 +177,6 @@ class GPT(nn.Module):
                 loss = None
         else:
             logits = self.lm_head(torch.stack([x[i,[review_lens[i]-1],:] for i in range(len(review_lens))],dim=0))
-            # logits = self.lm_head(x[:,[-1],:])
             if target is not None:
                 loss = F.cross_entropy(logits,target) 
             else:
@@ -272,11 +270,9 @@ class GPT(nn.Module):
         """
         tokenizer = tiktoken.get_encoding("gpt2")
         idx = tokenizer.encode(text,allowed_special={"<|endoftext|>"})
-        idx = torch.tensor([idx]).to(device)
-        # print(f"Size of query: {idx.size()}")
+        idx = torch.tensor([idx],dtype=torch.long).to(device)
         for _ in range(max_new_tokens):
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
-            # print(f"Conditional idx size: {idx_cond.size()}")
             logits, _,_ = self(idx_cond,review_lens=torch.tensor([idx_cond.size(1)]).to(device))
             logits = logits[:,-1,:]/temp
              # optionally crop the logits to only the top k options

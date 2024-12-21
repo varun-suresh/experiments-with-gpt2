@@ -23,10 +23,10 @@ class RAG:
         self.index.add(np.vstack(doc_embeddings))
 
     # Get the top k documents most relevant to query
-    def _retrieve(self,query):
-        # For now assuming that the query length is less than the block size of the embedding model
+    def retrieve(self,query,k):
+        # For now assuming that the query length is one or two sentences, less than the sentence_size
         query_embedding, _ = self.embedding_model.encode(query,self.sentence_size,self.overlap_size)
-        dist, ann = self.index.search(query_embedding,self.k)
+        dist, ann = self.index.search(query_embedding,k)
 
         relevant_docs = []
         for neighbor in ann[0]:
@@ -34,13 +34,12 @@ class RAG:
         
         return relevant_docs
     
-    def _generate(self,query,relevant_docs):
+    def _generate(self,query,relevant_docs,max_new_tokens):
         context = " ".join(doc for doc in relevant_docs)
-        input_text = f"Query: {query} Context:{context} Response:"
-        input_text = input_text.replace("\n"," ")
-        response = self.generate_model.generate(input_text,max_new_tokens=10)
-        return f"Query: {query}, Response: {response[len(input_text):]}"
+        input_text = f"Context:{context} Query: {query} Response:"
+        response = self.generate_model.generate(input_text,max_new_tokens)
+        return f"Query: {query} Response: {response[len(input_text):]}"
 
-    def get_response(self,query):
-        relevant_docs = self._retrieve(query=query)
-        return self._generate(query,relevant_docs)
+    def get_response(self,query,max_new_tokens=50):
+        relevant_docs = self.retrieve(query=query,k=self.k)
+        return self._generate(query,relevant_docs,max_new_tokens)

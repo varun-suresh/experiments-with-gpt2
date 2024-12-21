@@ -29,7 +29,7 @@ class GPTConfig:
     lora_layers: Tuple = (10,11)
 
     # Regularizaztion
-    dropout: float = 0.1
+    dropout: float = 0.0
 
     # For debugging
     debug:bool = False
