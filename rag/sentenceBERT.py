@@ -3,6 +3,7 @@ Sentence BERT
 """
 import numpy as np
 import torch
+import re
 from torch import nn
 from transformers import BertTokenizer
 import sys
@@ -38,6 +39,8 @@ class sentenceBERT(nn.Module):
         open the file, run BERT to extract the embeddings. Return the embeddings
         """
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        text = re.sub(r'\[.*?\]','',text)
+        text = re.sub(r'\s+', ' ', text).strip()
         sentences = sent_tokenize(text)
         overlapping_sentences = []
         for i in range(0,len(sentences),sentences_to_combine-overlap_size):
