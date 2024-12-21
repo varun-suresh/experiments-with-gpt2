@@ -127,3 +127,11 @@ class Trainer:
         losses["val"] = val_loss / (self.train_config.eval_iters * self.train_config.micro_batch_size)
         self.model.train()
         return losses
+
+if __name__ == "__main__":
+    train_set = sentenceBERTDataset("train")
+    val_set = sentenceBERTDataset("dev")
+    train_config = BERTTrainConfig()
+    model_config = BERTConfig()
+    trainer = Trainer(train_set,val_set,model_config,train_config)
+    trainer.train()
