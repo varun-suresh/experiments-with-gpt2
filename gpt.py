@@ -149,7 +149,7 @@ class GPT(nn.Module):
                 block.attn.bias = block.attn.bias[:,:,:block_size,:block_size]
 
 
-    def forward(self, idx,review_lens,target=None):
+    def forward(self, idx,question_lengths=None,answer_lengths=None,target=None):
         device = idx.device
         b, t = idx.size()
         assert (
@@ -170,17 +170,27 @@ class GPT(nn.Module):
         x = self.transformer.ln_f(x)
         # To finetune, want to calculate the loss only on the last token
         if self.config.binary_classification_head:
-            logits = self.classification_head(torch.stack([x[i,review_lens[i]-1,:] for i in range(len(review_lens))],dim=0))
+            logits = self.classification_head(x[:,[-1],:])
+            # logits = self.classification_head(torch.stack([x[i,question_lengths[i]-1,:] for i in range(len(question_lengths))],dim=0))
             if target is not None:
                 loss = F.binary_cross_entropy_with_logits(logits.squeeze(),target=target)
             else:
                 loss = None
         else:
-            logits = self.lm_head(torch.stack([x[i,[review_lens[i]-1],:] for i in range(len(review_lens))],dim=0))
+            # loss = None
+            q_end = [question_lengths[i] - 1 for i in range(len(question_lengths))]
+            a_end = [question_lengths[i]-1 + answer_lengths[i] for i in range(len(answer_lengths))]
+            target = torch.stack([idx[i,q_end[i]+1:a_end[i]+1] for i in range(len(question_lengths))])
+            logits = self.lm_head(torch.stack([x[i,q_end[i]:a_end[i],:] for i in range(len(question_lengths))],dim=0))
+            # logits = self.lm_head(x[:,[-1],:])
+            # print(f"Shape of logits: {logits.size()}, Target Size: {target.size()}")
             if target is not None:
-                loss = F.cross_entropy(logits,target) 
-            else:
-                loss = None
+                loss = F.cross_entropy(logits.squeeze(),target.squeeze())
+            # if torch.isnan(loss):
+            #     print(f"Question End: {q_end}, Answer End: {a_end}")
+            #     print(f"Loss : {loss} Input: {idx.size()}, Question Lengths:{question_lengths}, Answer Lengths: {answer_lengths}") 
+            # # else:
+                # loss = None
         return logits, loss, att_out
 
     def configure_optimizers(self,weight_decay,learning_rate,betas,device_type):
@@ -273,7 +283,7 @@ class GPT(nn.Module):
         idx = torch.tensor([idx],dtype=torch.long).to(device)
         for _ in range(max_new_tokens):
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
-            logits, _,_ = self(idx_cond,review_lens=torch.tensor([idx_cond.size(1)]).to(device))
+            logits, _,_ = self(idx_cond,question_lengths=torch.tensor([idx_cond.size(1)]).to(device))
             logits = logits[:,-1,:]/temp
              # optionally crop the logits to only the top k options
             if top_k is not None:
