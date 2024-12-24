@@ -177,12 +177,12 @@ class GPT(nn.Module):
             else:
                 loss = None
         else:
-            # loss = None
-            q_end = [question_lengths[i] - 1 for i in range(len(question_lengths))]
-            a_end = [question_lengths[i]-1 + answer_lengths[i] for i in range(len(answer_lengths))]
-            target = torch.stack([idx[i,q_end[i]+1:a_end[i]+1] for i in range(len(question_lengths))])
-            logits = self.lm_head(torch.stack([x[i,q_end[i]:a_end[i],:] for i in range(len(question_lengths))],dim=0))
-            # logits = self.lm_head(x[:,[-1],:])
+            # q_end = [question_lengths[i] - 1 for i in range(len(question_lengths))]
+            # a_end = [question_lengths[i]-1 + answer_lengths[i] for i in range(len(answer_lengths))]
+            # target = torch.stack([idx[i,q_end[i]+1:a_end[i]+1] for i in range(len(question_lengths))])
+            # logits = self.lm_head(torch.stack([x[i,q_end[i]:a_end[i],:] for i in range(len(question_lengths))],dim=0))
+            logits = self.lm_head(x[:,[-1],:])
+            loss = None
             # print(f"Shape of logits: {logits.size()}, Target Size: {target.size()}")
             if target is not None:
                 loss = F.cross_entropy(logits.squeeze(),target.squeeze())
