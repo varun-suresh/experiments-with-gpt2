@@ -15,7 +15,6 @@ class convBlock(nn.Module):
     def forward(self,x):
         return F.relu(self.bn(self.conv(x)))
 
-
 class BottleNeckLayer(nn.Module):
     def __init__(self,channels:int,is_conv2x:bool=False):
         if is_conv2x:
@@ -58,6 +57,51 @@ class ResNet50(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv5(x)
+        x = self.avgpool(x)
+        x = self.fc(x)
+        return x
+
+class conv2Block(nn.Module):
+    def __init__(self,in_channels,out_channels,kernel_size,stride=1):
+        super(conv2Block,self).__init__()
+        self.conv1 = nn.conv2d(in_channels,out_channels,kernel_size,stride=stride)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.conv2d(out_channels,out_channels,kernel_size)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+    def forward(self,x):
+        conv1 = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(x + self.bn2(self.conv2(conv1)))
+        return out
+
+class conv2nBlock(nn.Module):
+    def __init__(self,n,in_channels,out_channels,kernel_size,stride):
+        super(conv2nBlock,self).__init__()
+        self.block_1 = conv2Block(in_channels,out_channels,kernel_size,stride=stride)
+        self.blocks = nn.ModuleList(conv2Block(out_channels,out_channels,kernel_size) for _ in range(n-1))
+    
+    def forward(self,x):
+        x = self.block_1(x)
+        for block in self.blocks:
+            x = block(x)
+        return x
+
+
+class ResNetCifar(nn.Module):
+    def __init__(self,n):
+        super(ResNetCifar,self).__init__()
+        self.layer_1 = nn.conv2d(3,16,3)
+        self.layer_2 = conv2nBlock(n,16,16,3,stride=1)
+        self.layer_3 = conv2nBlock(n,16,32,3,stride=2)
+        self.layer_4 = conv2nBlock(n,32,64,3,stride=2)
+        self.avgpool = nn.AvgPool(8)
+        self.fc = nn.Linear(64,10)
+    
+    def forward(self,x:torch.Tensor):
+        x = self.layer_1(x)
+        x = self.layer_2(x)
+        x = self.layer_3(x)
+        x = self.layer_4(x)
         x = self.avgpool(x)
         x = self.fc(x)
         return x
