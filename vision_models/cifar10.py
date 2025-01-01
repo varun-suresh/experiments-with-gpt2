@@ -7,16 +7,23 @@ from torchvision.transforms import v2
 class cifar10(Dataset):
     def __init__(self,split):
         super(cifar10,self).__init__()
+        self.split = split
         self.data = load_dataset("uoft-cs/cifar10")[split]
         self.calculate_mean_image()
-        self.transforms = v2.RandomHorizontalFlip(0.5)
+        self.transforms = v2.Compose([v2.Pad(4),
+            v2.RandomHorizontalFlip(0.5),
+            v2.RandomResizedCrop(size=(32, 32), antialias=True)])
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self,idx):
+        # TODO: Save the train data mean image and use it for test
+        img = pil_to_tensor(self.data[idx]["img"]) - self.mean_img
+        if self.split == "train":
+            img = self.transforms(img)
         return {
-            "img": self.transforms(pil_to_tensor(self.data[idx]["img"])-self.mean_img),
+            "img": img,
             "label": self.data[idx]["label"]
         }
 
