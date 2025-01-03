@@ -78,7 +78,7 @@ class conv2Block(nn.Module):
     def forward(self,x):
         conv1 = F.relu(self.bn1(self.conv1(x)))
         if self.projection:
-            x = self.bn_p(self.projection_layer(x))
+            x = F.relu(self.bn_p(self.projection_layer(x)))
         out = F.relu(x + self.bn2(self.conv2(conv1)))
         return out
 
@@ -98,21 +98,23 @@ class conv2nBlock(nn.Module):
 class ResNetCifar(nn.Module):
     def __init__(self,n):
         super(ResNetCifar,self).__init__()
-        self.layer_1 = nn.Conv2d(3,16,3,padding="same",bias=False)
+        self.layer_1 = convBlock(3,16,3)
         self.layer_2 = conv2nBlock(n,16,16,3,stride=1)
         self.layer_3 = conv2nBlock(n,16,32,3,stride=2)
         self.layer_4 = conv2nBlock(n,32,64,3,stride=2)
         self.avgpool = nn.AvgPool2d(8)
         self.fc = nn.Conv2d(64,10,1,bias=False)
-    
+        print(f"No of parameters in the model: {self.get_num_params()}")
+
     def forward(self,x:torch.Tensor):
         x = self.layer_1(x)
         x = self.layer_2(x)
         x = self.layer_3(x)
         x = self.layer_4(x)
         x = self.avgpool(x)
-        # print(f"Output Shape after avg pool: {x.size()}")
         x = self.fc(x)
         return x.squeeze()
 
+    def get_num_params(self):
+        return sum(p.numel() for p in self.parameters())
 
