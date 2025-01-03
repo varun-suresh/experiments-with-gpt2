@@ -47,7 +47,7 @@ class Trainer:
                                            lr=self.train_config.learning_rate,
                                             momentum=self.train_config.momentum,
                                             weight_decay=self.train_config.weight_decay)
-        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[64000,96000])
+        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[32000,48000])
         if self.train_config.init_from == "resume":
             self.optimizer.load_state_dict(self.ckpt["optimizer"])
             self.scheduler.load_state_dict(self.ckpt["scheduler"])
