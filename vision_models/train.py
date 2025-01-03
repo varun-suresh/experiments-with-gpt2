@@ -16,9 +16,10 @@ from cifar10 import cifar10
 from resnet_config import ResNetConfig, ResNetTrainConfig
 
 class Trainer:
-    def __init__(self,train_set,val_set,train_config,model_config):
+    def __init__(self,train_set,val_set,test_set,train_config,model_config):
         self.train_set = train_set
         self.val_set = val_set
+        self.test_set = test_set
         self.train_config = train_config
         self.model_config = model_config
         self.iter_num = 0
@@ -36,7 +37,7 @@ class Trainer:
             model_config.checkpoint_path = self.model_config.checkpoint_path
             self.model_config = model_config
             self.model = ResNetCifar(self.model_config.n)
-            self.model.load_state_dict(self.model_config)
+            self.model.load_state_dict(self.ckpt["model"])
         else:
             self.model = ResNetCifar(self.model_config.n)
         self.model.to(self.train_config.device)
@@ -61,27 +62,32 @@ class Trainer:
 
         if self.train_config.init_from == "resume":
             start_iter = self.ckpt["iter_num"]
-            best_val_loss = self.ckpt["best_val_loss"]
+            best_val_loss = self.ckpt.get("best_val_loss",1e9)
         else:
             start_iter = 0
             best_val_loss = 1e9
         
         for self.iter_num in tqdm(range(start_iter,self.train_config.max_iters)):
             if self.train_config.grad_clip != 0.0:
-                torch.nn.utils.clip_grad_norm(self.model.parameters(),self.train_config.grad_clip)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.train_config.grad_clip)
 
-            if self.iter_num % accumulation_steps == 0:
-                self.optimizer.step()
-                self.scheduler.step()
-                self.optimizer.zero_grad()
+
 
             if self.iter_num % self.train_config.eval_interval == 0:
                 losses = self.estimate_losses()
-                print(f"Step:{self.iter_num}\nTrain Loss:{losses['train']}\nValidation Loss:{losses['val']}") 
+                test_error = self.calculate_test_error()
+                print(f"Step:{self.iter_num}\nTrain Loss:{losses['train']}\nValidation Loss:{losses['val']}\nTest Error:{test_error}") 
                 self.writer.add_scalar("Loss/train",losses["train"],self.iter_num)
                 self.writer.add_scalar("Loss/val",losses["val"],self.iter_num)
+                self.writer.add_scalar("Test Error",test_error,self.iter_num)
 
-                if losses["val"] < best_val_loss or self.train_config.eval_interval:
+                for name,param in self.model.named_parameters():
+                    if param.grad is not None:
+                        self.writer.add_scalar(f"Grad/{name}",param.grad.norm(),self.iter_num)
+                        self.writer.add_histogram(name,param,self.iter_num)
+                        self.writer.add_histogram(name,param.grad,self.iter_num)
+
+                if losses["val"] < best_val_loss or self.train_config.always_save_checkpoint:
                     best_val_loss = losses["val"] 
                     if self.iter_num > start_iter:
                         ckpt = {
@@ -91,12 +97,19 @@ class Trainer:
                             "iter_num": self.iter_num,
                             "optimizer": self.optimizer.state_dict(),
                             "scheduler": self.scheduler.state_dict(),
+                            "best_val_loss": best_val_loss,
                         }
                         output_path = os.path.join(self.train_config.out_dir,self.train_config.checkpoint_name)
                         if not os.path.exists(self.train_config.out_dir):
                             os.makedirs(self.train_config.out_dir)
+                        print(f"Saving checkpoint to {output_path}")
                         torch.save(ckpt,output_path)
                 
+            if self.iter_num > start_iter and self.iter_num % accumulation_steps == 0:
+                self.optimizer.step()
+                self.scheduler.step()
+                self.optimizer.zero_grad()               
+
             batch = next(iter(dl))
             logits = self.model(batch["img"].to(self.train_config.device))
             loss = self.criterion(logits,batch["label"].to(self.train_config.device))
@@ -123,6 +136,20 @@ class Trainer:
         losses["val"] = val_loss/(self.train_config.eval_iters * self.train_config.micro_batch_size)
         self.model.train()
         return losses
+
+    def calculate_test_error(self):
+        self.model.eval()
+        test_dl = DataLoader(self.test_set,batch_size=self.train_config.micro_batch_size)
+        correct = 0
+        for batch in test_dl:
+            with torch.no_grad():
+                logits = self.model(batch["img"].to(self.train_config.device))
+                predictions = torch.argmax(logits,dim=1)
+                labels = torch.tensor(batch["label"]).to(self.train_config.device)
+                correct += torch.eq(predictions,labels).sum()
+        test_error = 1-correct/len(self.test_set)
+        self.model.train()
+        return test_error
 
 if __name__ == "__main__":
     all_train_data = cifar10("train")
