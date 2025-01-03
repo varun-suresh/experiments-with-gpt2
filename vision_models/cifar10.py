@@ -9,31 +9,28 @@ class cifar10(Dataset):
         super(cifar10,self).__init__()
         self.split = split
         self.data = load_dataset("uoft-cs/cifar10")[split]
-        self.calculate_mean_image()
-        self.transforms = v2.Compose([v2.Pad(4),
-            v2.RandomHorizontalFlip(0.5),
-            v2.RandomResizedCrop(size=(32, 32), antialias=True)])
+        self.mean = torch.tensor([0.4914, 0.4822, 0.4465])
+        self.std = torch.tensor([0.2023, 0.1994, 0.2010])
+        self.train_transforms = v2.Compose([#v2.ToDtype(torch.float32,scale=True),
+                                            v2.RandomCrop(size=(32,32),padding=4),
+                                            v2.RandomHorizontalFlip(0.5),
+                                            v2.Normalize(mean=self.mean,std=self.std),
+                                            ])
 
+        self.test_transforms = v2.Compose([#v2.ToDtype(torch.float32, scale=True),
+                                           v2.Normalize(mean=self.mean,std=self.std),
+                                           ])
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self,idx):
-        # TODO: Save the train data mean image and use it for test
-        img = pil_to_tensor(self.data[idx]["img"]) - self.mean_img
+        img = pil_to_tensor(self.data[idx]["img"])/255
         if self.split == "train":
-            img = self.transforms(img)
+            img = self.train_transforms(img)
+        else:
+            img = self.test_transforms(img)
         return {
             "img": img,
             "label": self.data[idx]["label"]
-        }
-
-    def get_mean_image(self):
-        return self.mean_img
-
-    def calculate_mean_image(self):
-        self.mean_img = torch.zeros((3,32,32))
-        for item in self.data:
-            self.mean_img += pil_to_tensor(item["img"])
-        self.mean_img /= len(self.data)
-        
+        }       
         
