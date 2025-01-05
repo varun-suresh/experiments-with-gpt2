@@ -6,61 +6,96 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-class convBlock(nn.Module):
-    def __init__(self,in_channels:int,out_channels:int,kernel_size:int,stride:int=1):
-        super(convBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels,out_channels,kernel_size=kernel_size,stride=stride,bias=False)
-        self.bn = nn.BatchNorm2d(out_channels)
-    
-    def forward(self,x):
-        return F.relu(self.bn(self.conv(x)))
-
 class BottleNeckLayer(nn.Module):
-    def __init__(self,channels:int,is_conv2x:bool=False):
-        if is_conv2x:
-            self.conv1 = convBlock(channels,channels,1)
+    def __init__(self,input_channels:int,intermediate_channels:int,output_channels:int,block_number:int,stride:int):
+        super(BottleNeckLayer,self).__init__()
+        if block_number==0:
+            self.convBlock1 = convBlock(input_channels,intermediate_channels,1,stride=stride)
+            self.projection = convBlock(input_channels,output_channels,kernel_size=1,stride=stride)
         else:
-            self.conv1 = convBlock(2*channels,channels,1,stride=2)
-        self.conv2 = convBlock(channels,channels,3)
-        self.conv3 = convBlock(channels,4*channels,1)
-    
+            # Input to this block is the output of an identical previous block
+            self.convBlock1 = convBlock(output_channels,intermediate_channels,1)
+            self.projection = None # Identity projection
+        self.convBlock2 = convBlock(intermediate_channels,intermediate_channels,3,padding=1)
+        self.convBlock3 = convBlock(intermediate_channels,output_channels,1)
+
     def forward(self,input:torch.Tensor):
-        x = self.conv1(input)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        return input + x
-        
+        x = self.convBlock1(input)
+        x = self.convBlock2(x)
+        x = self.convBlock3(x)
+        if self.projection:
+            return self.projection(input) + x
+        else:
+            return input + x
+
+class BottleNeckBlock(nn.Module):
+    def __init__(self,
+                 input_channels:int,
+                 intermediate_channels:int,
+                 output_channels:int,
+                 n_blocks:int,
+                 stride:int = 2,
+    ):
+        super(BottleNeckBlock,self).__init__()
+        self.block = nn.ModuleList(BottleNeckLayer(input_channels,intermediate_channels,output_channels,i,stride) for i in range(n_blocks))
+
+    def forward(self,x):
+        for layer in self.block:
+            x = layer(x)
+        return x 
 
 class ResNet50(nn.Module):
     def __init__(self,config):
         super(ResNet50,self).__init__()
-        self.conv1 = nn.Conv2d(config.conv1.in_channels,
-                            config.conv1.out_channels,
+        self.conv1 = nn.Conv2d(config.conv1.input_channels,
+                            config.conv1.output_channels,
                             kernel_size=config.conv1.kernel_size,
                             stride=config.conv1.stride,
                             padding=config.conv1.padding,
                             bias=False)
-        self.maxpool1 = nn.MaxPool2d(config.maxpool1.size,
-                                     stride=config.maxpool1.stride)
+        self.maxpool1 = nn.MaxPool2d(config.maxpool1.kernel_size,
+                                     stride=config.maxpool1.stride,
+                                     padding=config.maxpool1.padding)
         
-        self.conv2 = nn.ModuleList(BottleNeckLayer(config.conv2.in_channels,is_conv2x=True) for _ in range(config.conv2.n_blocks))
-        
-        self.conv3 = nn.ModuleList(BottleNeckLayer(config.conv3.in_channels) for _ in range(config.conv3.n_blocks))
-        self.conv4 = nn.ModuleList(BottleNeckLayer(config.conv4.in_channels) for _ in range(config.conv4.n_blocks))
-        self.conv5 = nn.ModuleList(BottleNeckLayer(config.conv5.in_channels) for _ in range(config.conv5.n_blocks))
+        self.block2 = BottleNeckBlock(config.block2.input_channels,
+                                      config.block2.intermediate_channels,
+                                      config.block2.output_channels,
+                                      n_blocks=config.block2.n_blocks,
+                                      stride=1)
+        self.block3 = BottleNeckBlock(config.block3.input_channels,
+                                      config.block3.intermediate_channels,
+                                      config.block3.output_channels,
+                                      n_blocks=config.block3.n_blocks) 
+        self.block4 = BottleNeckBlock(config.block4.input_channels,
+                                      config.block4.intermediate_channels,
+                                      config.block4.output_channels,
+                                      n_blocks=config.block4.n_blocks)
+        self.block5 = BottleNeckBlock(config.block5.input_channels,
+                                      config.block5.intermediate_channels,
+                                      config.block5.output_channels,
+                                      n_blocks=config.block5.n_blocks)
         self.avgpool = nn.AvgPool2d(7)
-        self.fc = nn.Linear(config.conv5.in_channels*4, config.n_classes)
+        self.fc = nn.Conv2d(config.block5.output_channels, config.n_classes,kernel_size=1)
 
     def forward(self,input):
         x = self.conv1(input)
         x = self.maxpool1(x)
-        x =  self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        x = self.block4(x)
+        x = self.block5(x)
         x = self.avgpool(x)
         x = self.fc(x)
-        return x
+        return x.squeeze()
+
+class convBlock(nn.Module):
+    def __init__(self,in_channels:int,out_channels:int,kernel_size:int,padding:int=0,stride:int=1):
+        super(convBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels,out_channels,kernel_size=kernel_size,stride=stride,padding=padding,bias=False)
+        self.bn = nn.BatchNorm2d(out_channels)
+    
+    def forward(self,x):
+        return F.relu(self.bn(self.conv(x)))
 
 class conv2Block(nn.Module):
     def __init__(self,in_channels,out_channels,kernel_size,stride=1,projection=False):
