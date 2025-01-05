@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from resnet import ResNetCifar
 from cifar10 import cifar10
-from resnet_config import ResNetConfig, ResNetTrainConfig
+from resnet_config import ResNetCIFAR10Config, ResNetCIFAR10TrainConfig
 
 class Trainer:
     def __init__(self,train_set,val_set,test_set,train_config,model_config):
@@ -31,7 +31,7 @@ class Trainer:
             ckpt_path = os.path.join(self.train_config.out_dir,self.train_config.checkpoint_name)
             print(f"Resuming training from {ckpt_path}")
             self.ckpt = torch.load(ckpt_path, map_location=self.train_config.device)
-            model_config = ResNetConfig(**self.ckpt["model_config"])
+            model_config = ResNetCIFAR10Config(**self.ckpt["model_config"])
             #Update some params
             model_config.load_from_checkpoint = self.model_config.load_from_checkpoint
             model_config.checkpoint_path = self.model_config.checkpoint_path
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     train_size = int(0.8*len(all_train_data))
     val_size = len(all_train_data) - train_size
     train_set, val_set = random_split(all_train_data,[train_size,val_size])
-    train_config = ResNetTrainConfig()
-    model_config = ResNetConfig()
+    train_config = ResNetCIFAR10TrainConfig()
+    model_config = ResNetCIFAR10Config()
     trainer = Trainer(train_set, val_set, train_config, model_config)
     trainer.train()
