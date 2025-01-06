@@ -7,11 +7,11 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from cifar10 import cifar10
 from resnet import ResNetCifar
-from resnet_config import ResNetConfig, ResNetTestConfig
+from resnet_config import ResNetCIFAR10Config, ResNetTestConfig
 
 
 class Eval:
-    def __init__(self,test_set: cifar10,eval_config: ResNetTestConfig, model_config: ResNetConfig):
+    def __init__(self,test_set: cifar10,eval_config: ResNetTestConfig, model_config: ResNetCIFAR10Config):
         self.test_set = test_set
         self.eval_config = eval_config
         self.model_config = model_config
@@ -19,7 +19,7 @@ class Eval:
     
     def load_model(self):
         ckpt = torch.load(self.eval_config.checkpoint_path,map_location=self.eval_config.device)
-        model_config = ResNetConfig(**ckpt["model_config"])
+        model_config = ResNetCIFAR10Config(**ckpt["model_config"])
         model_config.load_from_checkpoint = self.model_config.load_from_checkpoint
         model_config.checkpoint_path = self.model_config.checkpoint_path
         self.model_config = model_config
