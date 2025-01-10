@@ -10,9 +10,9 @@ from cifar10 import cifar10
 from resnet_config import ResNetCIFAR10TrainConfig
 from lib.baseTrainer import BaseTrainer
 
-class Trainer2(BaseTrainer):
+class Trainer(BaseTrainer):
     def __init__(self,config,train_set,val_set,test_set,criterion):
-        super(Trainer2,self).__init__(config,train_set,val_set,test_set,criterion)
+        super(Trainer,self).__init__(config,train_set,val_set,test_set,criterion)
     
     def freeze_layers(self):
         print(f"Freezing layers as specified in the config")
@@ -45,5 +45,5 @@ if __name__ == "__main__":
     test_set = random_split(test_set,[len(test_set)])[0]
     config = ResNetCIFAR10TrainConfig()
     criterion = nn.CrossEntropyLoss(reduction="sum")
-    trainer = Trainer2(config,train_set, val_set, test_set,criterion)
+    trainer = Trainer(config,train_set, val_set, test_set,criterion)
     trainer.train()
