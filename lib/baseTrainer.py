@@ -107,8 +107,7 @@ class BaseTrainer(ABC):
                 self.optimizer.zero_grad()
             
             if self.iter_num % self.config.eval_interval == 0:
-                # losses = self.estimate_losses()
-                losses = {"train":0,"val":0}
+                losses = self.estimate_losses()
                 errors = self.calculate_error()
                 print(f"Step: {self.iter_num}\nTrain Loss: {losses['train']}\nValidation Loss:{losses['val']}")
                 print(f"Train Error: {errors['train']}\nValidation Error: {errors['val']}\nTest Error: {errors['test']}")
@@ -163,22 +162,20 @@ class BaseTrainer(ABC):
         """
         self.model.eval()
 
-        def create_subset(dataset):
-            subset = torch.utils.data.Subset(dataset,indices=torch.randint(high=len(dataset)-1,size=(self.config.eval_size,1)))
+        def create_subset(d):
+            subset = torch.utils.data.Subset(d,indices=torch.randint(high=len(d)-1,size=(self.config.eval_size,1)))
             return subset
 
         train_subset = create_subset(self.train_set)
         test_subset = create_subset(self.test_set)
         val_subset = create_subset(self.val_set)
 
-        # pairs = [("train",train_subset),("val",val_subset),("test",test_subset)]
-        pairs = [("test",test_subset)] 
+        pairs = [("train",train_subset),("val",val_subset),("test",test_subset)]
         def calculate_subset_error(dataset):
             correct = 0
             dl = self.create_dataloader(dataset)
-            print(dataset[0])
+
             for batch in dl:
-                print(batch.keys())
                 with torch.no_grad():
                     model_output = self.run_inference(batch) 
                     predictions = torch.argmax(model_output,dim=1)
@@ -189,7 +186,6 @@ class BaseTrainer(ABC):
 
         errors = {}
         for split,subset in pairs:
-            print(split)
             errors[split] = calculate_subset_error(subset) 
         self.model.train()
         return errors 
