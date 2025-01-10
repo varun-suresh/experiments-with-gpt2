@@ -1,6 +1,5 @@
 
 from dataclasses import dataclass
-from typing import Optional 
 @dataclass
 class ResNetCIFAR10Config:
 
@@ -69,11 +68,13 @@ class ResNetImageNetTrainConfig:
 @dataclass
 class ResNetCIFAR10TrainConfig:
     # I/O
-    out_dir:str = "out/resnet-56"
+    out_dir:str = "out/resnet-56-refactored"
     checkpoint_name: str = "resnet_ckpt_cifar.pt"
     eval_interval:int = 2000
     eval_iters:int = 100
+    eval_size = 5000
     eval_only:bool = False
+    model_type = "resnet-cifar"
     
     init_from:str = "scratch" # 'scratch' or 'resume' - it will resume from the latest checkpoint
     always_save_checkpoint:bool = True
