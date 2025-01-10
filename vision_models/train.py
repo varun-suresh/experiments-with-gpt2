@@ -42,8 +42,7 @@ if __name__ == "__main__":
     val_size = len(all_train_data) - train_size
     train_set, val_set = random_split(all_train_data,[train_size,val_size])
     test_set = cifar10("test")
-    print(f"Test set: {len(test_set)}")
-    print(type(test_set[0]["img"]))
+    test_set = random_split(test_set,[len(test_set)])[0]
     config = ResNetCIFAR10TrainConfig()
     criterion = nn.CrossEntropyLoss(reduction="sum")
     trainer = Trainer2(config,train_set, val_set, test_set,criterion)
