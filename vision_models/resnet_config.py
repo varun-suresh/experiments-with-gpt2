@@ -72,7 +72,7 @@ class ResNetCIFAR10TrainConfig:
     checkpoint_name: str = "resnet_ckpt_cifar.pt"
     eval_interval:int = 2000
     eval_iters:int = 100
-    eval_size = 5000
+    eval_size = 2000
     eval_only:bool = False
     model_type = "resnet-cifar"
     
