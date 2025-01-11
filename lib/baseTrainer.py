@@ -34,11 +34,11 @@ class BaseTrainer(ABC):
             ckpt_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
             print(f"Resuming training from {ckpt_path}")
             self.ckpt = torch.load(ckpt_path, map_location=self.config.device)
-            model_config = MODEL_CONFIGS.get(self.config.model_type)(**self.ckpt["model_config"])
+            self.model_config = MODEL_CONFIGS.get(self.config.model_type)(**self.ckpt["model_config"])
             #Update some params
-            model_config.load_from_checkpoint = self.model_config.load_from_checkpoint
-            model_config.checkpoint_path = self.model_config.checkpoint_path
-            self.model_config = model_config
+            # model_config.load_from_checkpoint = self.model_config.load_from_checkpoint
+            # model_config.checkpoint_path = self.model_config.checkpoint_path
+            # self.model_config = model_config
             self.model = MODELS.get(self.config.model_type)(self.model_config.n)
             self.model.load_state_dict(self.ckpt["model"])
         else:
@@ -101,11 +101,7 @@ class BaseTrainer(ABC):
         for self.iter_num in tqdm(range(start_iter, self.config.max_iters)):
             if self.config.grad_clip != 0.0:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.config.grad_clip)
-            
-            if self.iter_num % accumulation_steps == 0:
-                self.optimizer.step()
-                self.optimizer.zero_grad()
-            
+                       
             if self.iter_num % self.config.eval_interval == 0:
                 losses = self.estimate_losses()
                 errors = self.calculate_error()
@@ -134,6 +130,12 @@ class BaseTrainer(ABC):
             model_output = self.run_inference(batch)
             loss = self.criterion(model_output, batch["label"].to(self.config.device)) / (self.config.micro_batch_size * accumulation_steps)
             loss.backward()
+
+            if self.iter_num % accumulation_steps == 0:
+                self.optimizer.step()
+                self.scheduler.step()
+                self.optimizer.zero_grad()
+ 
  
     def estimate_losses(self)->Dict[str,float]:
         self.model.eval()
