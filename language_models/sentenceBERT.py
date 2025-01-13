@@ -6,12 +6,10 @@ import torch
 import re
 from torch import nn
 from transformers import BertTokenizer
-import sys
-sys.path.append("/home/varun/projects/experiments-with-gpt2/")
 from nltk.tokenize import sent_tokenize
-from bert import BERT
-from bert_config import BERTConfig
-from bert_utils import sentence
+from language_models.bert import BERT
+from language_models.bert_config import BERTConfig
+from language_models.utils.bert_utils import sentence
 
 # TODO : Add this in the config
 device = "cuda"

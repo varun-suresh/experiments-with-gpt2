@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 
-
-
 @dataclass
 class BERTConfig:
 
@@ -13,7 +11,7 @@ class BERTConfig:
     # Load from a checkpoint
     load_from_checkpoint : bool = False
     checkpoint_path : str = ""
-    model_type = "bert"
+    model_type:str = "bert"
     is_causal:bool = False
     layer_norm_eps: float = 1e-12
     # # Training specific params:
@@ -28,15 +26,15 @@ class BERTConfig:
     # For debugging
     # debug:bool = False
 
-    # Sentence BERT:
-    n_classes: int = 3
 
 @dataclass
 class BERTTrainConfig:
     # I/O
     out_dir:str = "out"
-    checkpoint_name: str = "bert_ckpt_train.pt"
+    model_type: str = "bert"
+    checkpoint_name: str = "bert_ckpt_train_warmup.pt"
     eval_interval:int = 2000
+    eval_size:int = 2000
     eval_iters:int = 100
     eval_only:bool = False
     
@@ -48,13 +46,14 @@ class BERTTrainConfig:
 
     # AdamW optimizer
     learning_rate:float = 2e-5
-    max_iters:int = 200000
+    max_iters:int = 120000
     beta1:float = 0.9
-    beta2:float = 0.95
-    grad_clip:float = 5.0
+    beta2:float = 0.999
+    grad_clip:float = 1.0
 
     # # Learning Rate scheduler : StepLR
-    # warmup_iters:int = 2000
+    warmup_iters:int = 12000
+    step_size:int = 120000
     # lr_decay_iters:int = 40000
     # min_lr: float = 6e-5
 

@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from bert_config import BERTConfig
+from language_models.bert_config import BERTConfig
 
 
 class MultiHeadedAttention(nn.Module):
