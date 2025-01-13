@@ -12,8 +12,13 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from vision_models.resnet_config import ResNetCIFAR10Config
 from vision_models.resnet import ResNetCifar
-MODELS = {"resnet-cifar": ResNetCifar}
-MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config}
+from language_models.bert_config import BERTConfig
+from language_models.sentenceBERT_config import sentenceBERTConfig
+from language_models.bert import BERT
+from language_models.sentenceBERT import sentenceBERT
+from lib.baseScheduler import LRSchedulerWithWarmup
+MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT}
+MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig}
 import os
 import torch
 
@@ -39,11 +44,11 @@ class BaseTrainer(ABC):
             # model_config.load_from_checkpoint = self.model_config.load_from_checkpoint
             # model_config.checkpoint_path = self.model_config.checkpoint_path
             # self.model_config = model_config
-            self.model = MODELS.get(self.config.model_type)(self.model_config.n)
+            self.model = MODELS.get(self.config.model_type)(self.model_config)
             self.model.load_state_dict(self.ckpt["model"])
         else:
             self.model_config = MODEL_CONFIGS.get(self.config.model_type)()
-            self.model = MODELS.get(self.config.model_type)(self.model_config.n)
+            self.model = MODELS.get(self.config.model_type)(self.model_config)
         self.model.to(self.config.device)
 
     def load_optimizer_scheduler(self):
@@ -53,7 +58,11 @@ class BaseTrainer(ABC):
         self.optimizer = torch.optim.AdamW(self.model.parameters(),
             lr=self.config.learning_rate,
             betas=(self.config.beta1,self.config.beta2))
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer)
+        self.scheduler = LRSchedulerWithWarmup(self.optimizer,
+                                               lr=self.config.learning_rate,
+                                               step_size=self.config.step_size,
+                                               gamma=0.1,
+                                               warmup_iters=self.config.warmup_iters)
         if self.config.init_from == "resume":
             self.optimizer.load_state_dict(self.ckpt["optimizer"])
             self.scheduler.load_state_dict(self.ckpt["scheduler"])

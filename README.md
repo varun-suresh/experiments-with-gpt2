@@ -21,4 +21,8 @@ From the project folder, run
 ```
 uv sync
 ```
+In the `.env` file, add the root directory of this repository to the PYTHONPATH env variable. Then from the root folder of this repo, run
+```
+export UV_ENV_FILE=.env
+```
 You should now have everything setup! 

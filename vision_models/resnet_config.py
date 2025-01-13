@@ -7,8 +7,8 @@ class ResNetCIFAR10Config:
     checkpoint_path : str = ""
     model_type = "resnet-cifar"
 
-    # Depth: 6n+1:
-    n: int = 9
+    # Depth: 6n+2:
+    n: int = 3
 
 @dataclass
 class convConfig:
@@ -68,7 +68,7 @@ class ResNetImageNetTrainConfig:
 @dataclass
 class ResNetCIFAR10TrainConfig:
     # I/O
-    out_dir:str = "out/resnet-56-refactored"
+    out_dir:str = "out/resnet-20-refactored"
     checkpoint_name: str = "resnet_ckpt_cifar.pt"
     eval_interval:int = 2000
     eval_iters:int = 100
@@ -111,4 +111,4 @@ class ResNetTestConfig:
     interval: int = 100
 
     # Model checkpoint
-    checkpoint_path: str = "out/resnet-56/resnet_ckpt_cifar.pt"
+    checkpoint_path: str = "out/resnet-56-refactored/resnet_ckpt_cifar.pt"
