@@ -130,12 +130,13 @@ class conv2nBlock(nn.Module):
 
 
 class ResNetCifar(nn.Module):
-    def __init__(self,n):
+    def __init__(self,config):
         super(ResNetCifar,self).__init__()
+        self.config = config
         self.layer_1 = convBlock(3,16,3)
-        self.layer_2 = conv2nBlock(n,16,16,3,stride=1)
-        self.layer_3 = conv2nBlock(n,16,32,3,stride=2)
-        self.layer_4 = conv2nBlock(n,32,64,3,stride=2)
+        self.layer_2 = conv2nBlock(config.n,16,16,3,stride=1)
+        self.layer_3 = conv2nBlock(config.n,16,32,3,stride=2)
+        self.layer_4 = conv2nBlock(config.n,32,64,3,stride=2)
         self.avgpool = nn.AvgPool2d(8)
         self.fc = nn.Conv2d(64,10,1,bias=False)
         print(f"No of parameters in the model: {self.get_num_params()}")
