@@ -9,6 +9,6 @@ class sentenceBERTConfig(BERTConfig):
 @dataclass
 class sentenceBERTTrainConfig(BERTTrainConfig):
     model_type:str = "sentence-bert"
-    checkpoint_name: str = "sbert_ckpt.pt"
+    checkpoint_name: str = "sbert_ckpt_train_warmup.pt"
     warmup_iters:int = 12000
     step_size:int = 120000
