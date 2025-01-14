@@ -12,14 +12,17 @@ class sentenceBERTDataset(Dataset):
     """
     Dataset to train and test sentence BERT
     """
-    def __init__(self, split:str,cache_dir: str = "/home/varun/Downloads/"):
+    def __init__(self, split:str,cache_dir: str = "/home/varun/Downloads/",snli=True,mnli=True):
         assert split in ["train","test","dev"]
-        self.data_file = open(os.path.join(cache_dir,"snli_1.0",f"snli_1.0_{split}.jsonl")).readlines()
-        if split == "train":
-            self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}.jsonl")).readlines())
-        elif split=="dev":
-            self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_matched.jsonl")).readlines())
-            self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_mismatched.jsonl")).readlines())
+        self.data_file = []
+        if snli:
+            self.data_file.extend(open(os.path.join(cache_dir,"snli_1.0",f"snli_1.0_{split}.jsonl")).readlines())
+        if mnli:
+            if split == "train":
+                self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}.jsonl")).readlines())
+            elif split=="dev":
+                self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_matched.jsonl")).readlines())
+                self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_mismatched.jsonl")).readlines())
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     def __len__(self):
