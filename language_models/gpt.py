@@ -4,7 +4,7 @@ from torch.nn import functional as F
 import math
 import loralib as lora
 import tiktoken
-from gpt_config import GPTConfig
+from language_models.gpt_config import GPTConfig
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, config):
@@ -183,23 +183,23 @@ class GPT(nn.Module):
                 loss = None
         return logits, loss, att_out
 
-    def configure_optimizers(self,weight_decay,learning_rate,betas,device_type):
-        param_dict = {pn:p for pn,p in self.named_parameters()}
-        # Filter out all params that do not require grad
-        param_dict = {pn:p for pn,p in param_dict.items() if p.requires_grad}
-        # Create optim groups. Weight tensors in embeddings and attention blocks decay, biases and layernorms don't
-        decay_params = [p for n,p in param_dict.items() if p.dim() >= 2]
-        nodecay_params = [p for n,p in param_dict.items() if p.dim() < 2]
-        optim_groups = [
-            {'params': decay_params, 'weight_decay': weight_decay},
-            {'params': nodecay_params, 'weight_decay': 0.0},
-            ]
-        num_decay_params = sum(p.numel() for p in decay_params)
-        num_nodecay_params = sum(p.numel() for p in nodecay_params)
-        print(f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters")
-        print(f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters")
-        optimizer = torch.optim.AdamW(optim_groups,lr=learning_rate,betas=betas)
-        return optimizer
+    # def configure_optimizers(self,weight_decay,learning_rate,betas,device_type):
+    #     param_dict = {pn:p for pn,p in self.named_parameters()}
+    #     # Filter out all params that do not require grad
+    #     param_dict = {pn:p for pn,p in param_dict.items() if p.requires_grad}
+    #     # Create optim groups. Weight tensors in embeddings and attention blocks decay, biases and layernorms don't
+    #     decay_params = [p for n,p in param_dict.items() if p.dim() >= 2]
+    #     nodecay_params = [p for n,p in param_dict.items() if p.dim() < 2]
+    #     optim_groups = [
+    #         {'params': decay_params, 'weight_decay': weight_decay},
+    #         {'params': nodecay_params, 'weight_decay': 0.0},
+    #         ]
+    #     num_decay_params = sum(p.numel() for p in decay_params)
+    #     num_nodecay_params = sum(p.numel() for p in nodecay_params)
+    #     print(f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters")
+    #     print(f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters")
+    #     optimizer = torch.optim.AdamW(optim_groups,lr=learning_rate,betas=betas)
+    #     return optimizer
 
     @classmethod
     def from_pretrained(cls, config:GPTConfig=GPTConfig()):
