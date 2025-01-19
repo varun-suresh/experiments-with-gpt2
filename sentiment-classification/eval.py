@@ -7,11 +7,11 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 from reviewsDataset import reviewsDataset
-from gpt_utils import dynamic_padding
-from gpt_config import GPTConfig
+from language_models.utils.gpt_utils import dynamic_padding
+from language_models.gpt_config import GPTConfig
 from eval_config import EvalConfig
 
-from gpt import GPT
+from language_models.gpt import GPT
 
 class Eval:
     def __init__(self,test_set: reviewsDataset,eval_config: EvalConfig, model_config: GPTConfig):
@@ -46,11 +46,11 @@ class Eval:
         results_file.write("filename,length,label,prediction\n")
         for batch in tqdm(dl):
             with torch.no_grad():
-                logits, _,_ = self.model(batch["input_ids"].to(self.eval_config.device),batch["review_lens"].to(self.eval_config.device))
+                logits = self.model(batch["input_ids"].to(self.eval_config.device),batch["review_lens"].to(self.eval_config.device)).squeeze()
                 if self.model_config.binary_classification_head:
                     predictions = F.sigmoid(logits)
                     for i, fname in enumerate(batch["fpaths"]):
-                        results_file.write(f"{fname},{batch['lengths'][i]},{batch['labels'][i]},{predictions[i].item()}\n")
+                        results_file.write(f"{fname},{batch['lengths'][i]},{batch['label'][i]},{predictions[i].item()}\n")
                 else:
                     sentiment_idx = self.test_set.get_pos_neg_indices()
                     for i, fname in enumerate(batch["fpaths"]):
@@ -61,5 +61,5 @@ class Eval:
                         else:
                             prediction = 0
     
-                        results_file.write(f"{fname},{batch['lengths'][i]},{batch['labels'][i]},{prediction}\n")               
+                        results_file.write(f"{fname},{batch['lengths'][i]},{batch['label'][i]},{prediction}\n")               
 
