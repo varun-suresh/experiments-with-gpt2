@@ -169,36 +169,37 @@ class BaseTrainer(ABC):
         self.model.train()
         return losses
 
+    def create_subset(self,dataset):
+        subset = torch.utils.data.Subset(dataset,indices=torch.randint(high=len(dataset)-1,size=(self.config.eval_size,1)))
+        return subset
+    
+    def calculate_subset_error(self,dataset):
+        correct = 0
+        dl = self.create_dataloader(dataset)
+
+        for batch in dl:
+            with torch.no_grad():
+                model_output = self.run_inference(batch)
+                predictions = torch.argmax(model_output,dim=1)
+                labels = torch.tensor(batch["label"]).to(self.config.device)
+                correct += torch.eq(predictions,labels).sum()
+        error = 1-correct/len(dataset)
+        return error
+
     def calculate_error(self)->Dict[str,float]:
         """
         The default method assumes it is a multi-class classification problem
         """
         self.model.eval()
 
-        def create_subset(d):
-            subset = torch.utils.data.Subset(d,indices=torch.randint(high=len(d)-1,size=(self.config.eval_size,1)))
-            return subset
-
-        train_subset = create_subset(self.train_set)
-        test_subset = create_subset(self.test_set)
-        val_subset = create_subset(self.val_set)
+        train_subset = self.create_subset(self.train_set)
+        test_subset = self.create_subset(self.test_set)
+        val_subset = self.create_subset(self.val_set)
 
         pairs = [("train",train_subset),("val",val_subset),("test",test_subset)]
-        def calculate_subset_error(dataset):
-            correct = 0
-            dl = self.create_dataloader(dataset)
-
-            for batch in dl:
-                with torch.no_grad():
-                    model_output = self.run_inference(batch) 
-                    predictions = torch.argmax(model_output,dim=1)
-                    labels = torch.tensor(batch["label"]).to(self.config.device)
-                    correct += torch.eq(predictions,labels).sum()
-            error = 1-correct/len(dataset)
-            return error
 
         errors = {}
         for split,subset in pairs:
-            errors[split] = calculate_subset_error(subset) 
+            errors[split] = self.calculate_subset_error(subset) 
         self.model.train()
         return errors 
