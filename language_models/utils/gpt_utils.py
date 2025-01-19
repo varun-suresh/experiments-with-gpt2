@@ -15,7 +15,7 @@ def dynamic_padding(data):
     review_lens = torch.tensor(review_lens)
     label_idxs = torch.tensor(label_idxs,dtype=torch.long)
     lengths = torch.tensor(lengths)
-    return {"input_ids": inputs_padded,"review_lens":review_lens, "labels":labels, "fpaths": fpaths, "lengths": lengths, "label_idxs": label_idxs}
+    return {"input_ids": inputs_padded,"review_lens":review_lens, "label":labels, "fpaths": fpaths, "lengths": lengths, "label_idxs": label_idxs}
 
 def start_recording(fname):
     # Start logging GPU memory usage
