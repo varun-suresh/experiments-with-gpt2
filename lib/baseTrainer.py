@@ -15,10 +15,12 @@ from vision_models.resnet import ResNetCifar
 from language_models.bert_config import BERTConfig
 from language_models.sentenceBERT_config import sentenceBERTConfig
 from language_models.bert import BERT
+from language_models.gpt_config import GPTConfig
+from language_models.gpt import GPT
 from language_models.sentenceBERT import sentenceBERT
 from lib.baseScheduler import LRSchedulerWithWarmup
-MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT}
-MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig}
+MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT,"gpt2":GPT}
+MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig,"gpt2":GPTConfig}
 import os
 import torch
 
