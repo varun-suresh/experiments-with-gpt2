@@ -43,8 +43,8 @@ class MultiHeadedAttention(nn.Module):
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         y = self.resid_dropout(self.c_proj(y))
 
-        if self.config.debug:
-            return y, att
+        # if self.config.debug:
+            # return y, att
         return y
 
 
@@ -74,14 +74,9 @@ class TransformerBlock(nn.Module):
         self.mlp = FeedForward(config)
 
     def forward(self, x):
-        if self.config.debug:
-            z, att_out = self.attn(self.ln_1(x))
-            x = x + z
-        else:
-            att_out = None
-            x = x + self.attn(self.ln_1(x))
+        x = x + self.attn(self.ln_1(x))
         x = x + self.mlp(self.ln_2(x))
-        return x, att_out
+        return x 
 
 class GPT(nn.Module):
     """
@@ -161,27 +156,23 @@ class GPT(nn.Module):
         x = self.transformer.drop(tok_emb + pos_emb)
         att_out = []
         for block in self.transformer.h:
-            if self.config.debug:
-                x, att_layer = block(x)
-            else:
-                x , _ = block(x)
-                att_layer = None
-            att_out.append(att_layer)
+            x = block(x)
         x = self.transformer.ln_f(x)
         # To finetune, want to calculate the loss only on the last token
         if self.config.binary_classification_head:
             logits = self.classification_head(torch.stack([x[i,review_lens[i]-1,:] for i in range(len(review_lens))],dim=0))
-            if target is not None:
-                loss = F.binary_cross_entropy_with_logits(logits.squeeze(),target=target)
-            else:
-                loss = None
+            # if target is not None:
+                # loss = F.binary_cross_entropy_with_logits(logits.squeeze(),target=target)
+            # else:
+                # loss = None
         else:
             logits = self.lm_head(torch.stack([x[i,[review_lens[i]-1],:] for i in range(len(review_lens))],dim=0))
-            if target is not None:
-                loss = F.cross_entropy(logits,target) 
-            else:
-                loss = None
-        return logits, loss, att_out
+            # if target is not None:
+                # loss = F.cross_entropy(logits,target) 
+            # else:
+                # loss = None
+        # return logits, loss, att_out
+        return logits
 
     # def configure_optimizers(self,weight_decay,learning_rate,betas,device_type):
     #     param_dict = {pn:p for pn,p in self.named_parameters()}
