@@ -4,7 +4,7 @@ from torch.nn import functional as F
 import math
 import loralib as lora
 import tiktoken
-from gpt_config import GPTConfig
+from language_models.gpt_config import GPTConfig
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, config):
@@ -43,8 +43,6 @@ class MultiHeadedAttention(nn.Module):
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         y = self.resid_dropout(self.c_proj(y))
 
-        if self.config.debug:
-            return y, att
         return y
 
 
@@ -74,14 +72,9 @@ class TransformerBlock(nn.Module):
         self.mlp = FeedForward(config)
 
     def forward(self, x):
-        if self.config.debug:
-            z, att_out = self.attn(self.ln_1(x))
-            x = x + z
-        else:
-            att_out = None
-            x = x + self.attn(self.ln_1(x))
+        x = x + self.attn(self.ln_1(x))
         x = x + self.mlp(self.ln_2(x))
-        return x, att_out
+        return x 
 
 class GPT(nn.Module):
     """
@@ -149,7 +142,7 @@ class GPT(nn.Module):
                 block.attn.bias = block.attn.bias[:,:,:block_size,:block_size]
 
 
-    def forward(self, idx,review_lens,target=None):
+    def forward(self, idx,review_lens):
         device = idx.device
         b, t = idx.size()
         assert (
@@ -159,47 +152,15 @@ class GPT(nn.Module):
         tok_emb = self.transformer.wte(idx)
         pos_emb = self.transformer.wpe(pos)
         x = self.transformer.drop(tok_emb + pos_emb)
-        att_out = []
         for block in self.transformer.h:
-            if self.config.debug:
-                x, att_layer = block(x)
-            else:
-                x , _ = block(x)
-                att_layer = None
-            att_out.append(att_layer)
+            x = block(x)
         x = self.transformer.ln_f(x)
         # To finetune, want to calculate the loss only on the last token
         if self.config.binary_classification_head:
             logits = self.classification_head(torch.stack([x[i,review_lens[i]-1,:] for i in range(len(review_lens))],dim=0))
-            if target is not None:
-                loss = F.binary_cross_entropy_with_logits(logits.squeeze(),target=target)
-            else:
-                loss = None
         else:
             logits = self.lm_head(torch.stack([x[i,[review_lens[i]-1],:] for i in range(len(review_lens))],dim=0))
-            if target is not None:
-                loss = F.cross_entropy(logits,target) 
-            else:
-                loss = None
-        return logits, loss, att_out
-
-    def configure_optimizers(self,weight_decay,learning_rate,betas,device_type):
-        param_dict = {pn:p for pn,p in self.named_parameters()}
-        # Filter out all params that do not require grad
-        param_dict = {pn:p for pn,p in param_dict.items() if p.requires_grad}
-        # Create optim groups. Weight tensors in embeddings and attention blocks decay, biases and layernorms don't
-        decay_params = [p for n,p in param_dict.items() if p.dim() >= 2]
-        nodecay_params = [p for n,p in param_dict.items() if p.dim() < 2]
-        optim_groups = [
-            {'params': decay_params, 'weight_decay': weight_decay},
-            {'params': nodecay_params, 'weight_decay': 0.0},
-            ]
-        num_decay_params = sum(p.numel() for p in decay_params)
-        num_nodecay_params = sum(p.numel() for p in nodecay_params)
-        print(f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters")
-        print(f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters")
-        optimizer = torch.optim.AdamW(optim_groups,lr=learning_rate,betas=betas)
-        return optimizer
+        return logits.squeeze()
 
     @classmethod
     def from_pretrained(cls, config:GPTConfig=GPTConfig()):

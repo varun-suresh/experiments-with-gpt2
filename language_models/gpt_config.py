@@ -20,11 +20,11 @@ class GPTConfig:
     checkpoint_path : str = ""
 
     # Use a binary classification head
-    binary_classification_head:bool = False
+    binary_classification_head:bool = True
 
     # Training specific params:
     # LoRA params
-    use_lora:bool = True
+    use_lora:bool = False
     r:int = 8
     lora_layers: Tuple = (10,11)
 
