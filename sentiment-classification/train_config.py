@@ -10,6 +10,7 @@ class TrainConfig:
     checkpoint_name: str = "ckpt_train.pt"
     eval_interval:int = 2000
     eval_iters:int = 100
+    eval_size:int = 2000
     eval_only:bool = False
     always_save_checkpoint:bool = True
     init_from:str = "gpt2" # 'gpt2' or 'resume' - it will resume from the latest checkpoint
@@ -32,7 +33,7 @@ class TrainConfig:
 
     #device
     device:str = "cuda"
-
+    model_type:str = "gpt2"
     # Gradient Accumulation
     micro_batch_size:int = 2   
 
