@@ -57,26 +57,32 @@ class reviewsDataset(Dataset):
     def encode(self, s: str):
         return self.enc.encode(s, allowed_special={"<|endoftext|>"})
 
-    def __getitem__(self, idx: int):
-        fpath, label, label_idx = self.data[idx]
+    # def __getitem__(self, idx: int):
+    #     fpath, label, label_idx = self.data[idx]
 
+    #     review = open(fpath).read()
+    #     review = self._preprocess_text(review)
+    #     review_ids_orig = self.encode(review)
+    #     review_ids = []
+    #     orig_review_max_len = self.max_length - len(self.prompt_prefix_ids) - len(self.prompt_suffix_ids)
+    #     review_ids.extend(self.prompt_prefix_ids)
+    #     review_ids.extend(review_ids_orig[-orig_review_max_len:])
+    #     review_ids.extend(self.prompt_suffix_ids)
+    #     review_ids = torch.tensor(review_ids)
+    #     return {
+    #         "input_ids": review_ids,
+    #         "length": len(review_ids_orig),
+    #         "review_len": len(review_ids),
+    #         "label": label,
+    #         "label_idx": label_idx,
+    #         "fpath": fpath,
+    #     }
+
+    def __getitem__(self,idx:int):
+        fpath, label, _= self.data[idx]
         review = open(fpath).read()
         review = self._preprocess_text(review)
-        review_ids_orig = self.encode(review)
-        review_ids = []
-        orig_review_max_len = self.max_length - len(self.prompt_prefix_ids) - len(self.prompt_suffix_ids)
-        review_ids.extend(self.prompt_prefix_ids)
-        review_ids.extend(review_ids_orig[-orig_review_max_len:])
-        review_ids.extend(self.prompt_suffix_ids)
-        review_ids = torch.tensor(review_ids)
-        return {
-            "input_ids": review_ids,
-            "length": len(review_ids_orig),
-            "review_len": len(review_ids),
-            "label": label,
-            "label_idx": label_idx,
-            "fpath": fpath,
-        }
+        return {"review": review, "label":label}
 
     def summary(self):
         """
