@@ -25,8 +25,8 @@ class reviewsDataset(Dataset):
         neg_dir = os.path.join(self.cache_dir,split,"neg")
         self.pos_index = self.encode(" Positive")[0]
         self.neg_index = self.encode(" Negative")[0]
-        self._prepare(pos_dir,1,self.pos_index)
-        self._prepare(neg_dir,0,self.neg_index)
+        self._prepare(pos_dir,torch.tensor([1],dtype=torch.float32),self.pos_index)
+        self._prepare(neg_dir,torch.tensor([0],dtype=torch.float32),self.neg_index)
 
     def _prepare(self, path: str, label:int, label_idx:int):
         count = 0

@@ -34,3 +34,9 @@ def dynamic_padding(data):
     # label = torch.tensor([item["label"] for item in data])
 
     return {"sentence1": s1_padded, "sentence2": s2_padded,"label": label}
+
+def dynamic_padding_scbert(data,max_length=256):
+    s1 = [tokenizer(item["review"],return_tensors="pt") for item in data]
+    s1_padded = sentence(**pad_sentences(s1))
+    label = torch.tensor([item["label"] for item in data])
+    return {"review":s1_padded,"label":label}

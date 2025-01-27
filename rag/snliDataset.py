@@ -4,7 +4,6 @@ import os
 import json
 
 from torch.utils.data import Dataset
-from transformers import BertTokenizer
 
 MAPPING = {"contradiction": 0, "entailment": 1, "neutral": 2}
 
@@ -23,7 +22,6 @@ class sentenceBERTDataset(Dataset):
             elif split=="dev":
                 self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_matched.jsonl")).readlines())
                 self.data_file.extend(open(os.path.join(cache_dir,"multinli_1.0",f"multinli_1.0_{split}_mismatched.jsonl")).readlines())
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     def __len__(self):
         return len(self.data_file)

@@ -86,7 +86,7 @@ class BERT(nn.Module):
             "activation": nn.Tanh()
         })
 
-    def forward(self,input_ids,token_type_ids,attention_mask,target=None):
+    def forward(self,input_ids,token_type_ids,attention_mask):
         device = input_ids.device
         b,t = input_ids.size()
         assert (
@@ -103,7 +103,13 @@ class BERT(nn.Module):
         # x = self.pooler.activation(self.pooler.dense(x[:,0,:]))
         return x
 
-        
+    def freeze_layers(self,N):
+        for pn,p in self.named_parameters():
+            if "embeddings" in pn:
+                p.requires_grad = False
+            elif pn.split(".")[0] == "encoder" and int(pn.split(".")[2]) < N:
+                p.requires_grad = False
+  
     @classmethod
     def from_pretrained(cls,config):
         """
