@@ -18,9 +18,10 @@ from language_models.bert import BERT
 from language_models.gpt_config import GPTConfig
 from language_models.gpt import GPT
 from language_models.sentenceBERT import sentenceBERT
+from sentiment_classification.sc_bert import sentimentClassificationBERT
 from lib.baseScheduler import LRSchedulerWithWarmup
-MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT,"gpt2":GPT}
-MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig,"gpt2":GPTConfig}
+MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT,"gpt2":GPT,"sc-bert":sentimentClassificationBERT}
+MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig,"gpt2":GPTConfig, "sc-bert":BERTConfig}
 import os
 import torch
 
@@ -157,8 +158,9 @@ class BaseTrainer(ABC):
         with torch.no_grad():
             for i in range(self.config.eval_iters):
                 train_batch = next(iter(train_dl))
-                train_output = self.run_inference(train_batch) 
-                train_loss += self.criterion(train_output,torch.tensor(train_batch["label"]).to(self.config.device))
+                train_output = self.run_inference(train_batch)
+                # print(f"Type of train output: {train_output.dtype}, Label: {train_batch['label'].dtype}") 
+                train_loss += self.criterion(train_output,train_batch["label"].to(self.config.device))
                 val_batch = next(iter(val_dl))
                 val_output = self.run_inference(val_batch) 
                 val_loss += self.criterion(val_output,val_batch["label"].to(self.config.device))
@@ -180,7 +182,7 @@ class BaseTrainer(ABC):
         for batch in dl:
             with torch.no_grad():
                 model_output = self.run_inference(batch)
-                predictions = torch.argmax(model_output,dim=1)
+                predictions = torch.argmax(model_output,dim=-1)
                 labels = torch.tensor(batch["label"]).to(self.config.device)
                 correct += torch.eq(predictions,labels).sum()
         error = 1-correct/len(dataset)
