@@ -34,6 +34,7 @@ class Trainer(BaseTrainer):
         return self.model(review,device=self.config.device)
 
     def calculate_subset_error(self, dataset):
+        self.model.eval()
         correct = 0
         dl = self.create_dataloader(dataset)
         threshold = 0.5
@@ -47,15 +48,5 @@ class Trainer(BaseTrainer):
                     elif label == 0 and pred < threshold:
                         correct += 1
         error = 1 - correct/len(dataset)
+        self.model.train()
         return error
-if __name__ == "__main__":
-    import torch
-    from reviewsDataset import reviewsDataset
-    from language_models.bert_config import BERTTrainConfig
-    
-    train_set, val_set = torch.utils.data.random_split(reviewsDataset("train"),[0.9,0.1])
-    test_set = reviewsDataset("test") 
-    config = BERTTrainConfig(model_type="sc-bert",freeze_layers=10,checkpoint_name="sc_bert.pt")
-    criterion = torch.nn.BCELoss(reduction="sum")
-    trainer = Trainer(config,train_set,val_set,test_set,criterion)
-    trainer.train()

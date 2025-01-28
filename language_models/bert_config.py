@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Tuple
 
 @dataclass
 class BERTConfig:
@@ -7,18 +8,19 @@ class BERTConfig:
     embedding_size: int = 768
     n_heads:int = 12
     n_layers:int = 12
-    block_size:int = 512
+    pretrained_block_size: int = 512
+    block_size:int = 256
     # Load from a checkpoint
     load_from_checkpoint : bool = False
     checkpoint_path : str = ""
     model_type:str = "bert"
     is_causal:bool = False
     layer_norm_eps: float = 1e-12
-    # # Training specific params:
-    # # LoRA params
-    # use_lora:bool = True
-    # r:int = 8
-    # lora_layers: Tuple = (10,11)
+    # Training specific params:
+    # LoRA params
+    use_lora:bool = True
+    r:int = 8
+    lora_layers: Tuple = (10,11)
 
     # Regularizaztion
     dropout: float = 0.1
@@ -31,7 +33,7 @@ class BERTConfig:
 class BERTTrainConfig:
     # I/O
     out_dir:str = "out"
-    model_type: str = "bert"
+    model_type: str = "sc-bert"
     checkpoint_name: str = "bert_ckpt_train_warmup.pt"
     eval_interval:int = 2000
     eval_size:int = 2000
@@ -46,7 +48,7 @@ class BERTTrainConfig:
 
     # AdamW optimizer
     learning_rate:float = 2e-5
-    max_iters:int = 120000
+    max_iters:int = 5000
     beta1:float = 0.9
     beta2:float = 0.999
     grad_clip:float = 1.0
