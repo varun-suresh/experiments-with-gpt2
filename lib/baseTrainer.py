@@ -33,14 +33,16 @@ class BaseTrainer(ABC):
         self.test_set = test_set
         self.criterion = criterion
         self.writer = SummaryWriter(log_dir=config.out_dir)
-
+        self.load_model()
+        self.load_optimizer_scheduler()
+ 
     def load_model(self):
         """
         Loads the model based on the config
         """
         if self.config.init_from == "resume":
             ckpt_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
-            print(f"Resuming training from {ckpt_path}")
+            print(f"Loading model from {ckpt_path}")
             self.ckpt = torch.load(ckpt_path, map_location=self.config.device)
             self.model_config = MODEL_CONFIGS.get(self.config.model_type)(**self.ckpt["model_config"])
             #Update some params
@@ -94,8 +96,7 @@ class BaseTrainer(ABC):
         pass
 
     def train(self):
-        self.load_model()
-        self.load_optimizer_scheduler()
+        print(f"Training..")
         self.model.train()
         if self.config.freeze_layers > 0:
             self.freeze_layers(self.config.freeze_layers)
