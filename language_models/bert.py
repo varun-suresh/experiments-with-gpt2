@@ -92,6 +92,9 @@ class BERT(nn.Module):
         })
         if self.config.load_from_checkpoint:
             self._crop_block_size()
+            if self.config.use_lora:
+                self.setup_lora()
+
 
     def forward(self,input_ids,token_type_ids,attention_mask):
         device = input_ids.device
