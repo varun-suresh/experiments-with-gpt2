@@ -45,8 +45,9 @@ class BaseTrainer(ABC):
             print(f"Loading model from {ckpt_path}")
             self.ckpt = torch.load(ckpt_path, map_location=self.config.device)
             self.model_config = MODEL_CONFIGS.get(self.config.model_type)(**self.ckpt["model_config"])
+            self.model_config.load_from_checkpoint = True
             #Update some params
-            # model_config.load_from_checkpoint = self.model_config.load_from_checkpoint
+            # model_config.load_from_checkpoint = model_config.load_from_checkpoint
             # model_config.checkpoint_path = self.model_config.checkpoint_path
             # self.model_config = model_config
             self.model = MODELS.get(self.config.model_type)(self.model_config)
