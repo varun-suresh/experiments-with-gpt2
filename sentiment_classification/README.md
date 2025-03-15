@@ -41,14 +41,14 @@ I used Microsoft's [loralib](https://github.com/microsoft/LoRA) package on the l
 ### Zero Shot Learning
 Given a prompt like "Review: The movie was awesome! Sentiment:", I compare the likelihood of the next token being " Positive" and " Negative" and classify the review.
 
-To try this out, you can use the notebook [sentiment_classification.ipynb](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/sentiment_classification.ipynb). You can try out different prompts by modifying [reviewsDataset.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/reviewsDataset.py#L17)
+To try this out, you can use the notebook [sentiment_classification.ipynb](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment_classification/sentiment_classification.ipynb). You can try out different prompts by modifying [reviewsDataset.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment_classification/reviewsDataset.py#L17)
 
 I tried a few prompts and the results varied quite a lot. An additional space ("Positive" and " Positive") results in different tokens and the model is quite sensitive to these prompts. Among the few prompts I tried, the one I used eventually had the best results. 
 
 ### Fine Tuning
 In this setting, I froze the Positional Embedding weights, Token Encoding weights and the first 10 transformer blocks. Instead of the language modeling head, I used a binary classification head (a fully-connected layer with just one output followed by a sigmoid to make the output between 0 and 1 where 0 is negative and 1 is positive). I used the binary cross entropy loss function. 
 
-To fine-tune the model, you can use the notebook [sentiment_classification.ipynb](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/sentiment_classification.ipynb). The model parameters are in [gpt_config.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/gpt_config.py) and the training parameters are in [train_config.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/train_config.py). The evaluation code is in [eval.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/eval.py). The training and fine-tuning can all be run from the sentiment classification notebook.
+To fine-tune the model, you can use the notebook [sentiment_classification.ipynb](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment_classification/sentiment_classification.ipynb). The model parameters are in [gpt_config.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/gpt_config.py) and the training parameters are in [train_config.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment_classification/train_config.py). The evaluation code is in [eval.py](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment_classification/eval.py). The training and fine-tuning can all be run from the sentiment classification notebook.
 
 Learnings:
 1. To avoid vanishing/exploding gradients, I clipped the gradients at 5.
@@ -92,9 +92,9 @@ where $\ A  $ and $\ B $ are two low rank matrices of dimension 768 * 8 . $\ AB^
 ## Results
 Since I considered the last 256 tokens for sentiment classification, I calculated the precision, recall and accuracy by the review length binned by size. As expected, the accuracy goes down slightly as the length of the review gets larger ( More of the review gets ignored as it gets longer).
 
-![Train Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/train_loss.svg)
+![Train Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment_classification/train_loss.svg)
 
-![Validation Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment-classification/val_loss.svg)
+![Validation Loss for finetuning with and without LoRA](https://github.com/varun-suresh/experiments-with-gpt2/blob/main/sentiment_classification/val_loss.svg)
 
 **Results for Zero Shot learning**
 
