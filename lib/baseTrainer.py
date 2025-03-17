@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from vision_models.resnet_config import ResNetCIFAR10Config
 from vision_models.resnet import ResNetCifar
+from vision_models.vit import VisionTransformer, VitConfig
 from language_models.bert_config import BERTConfig
 from language_models.sentenceBERT_config import sentenceBERTConfig
 from language_models.bert import BERT
@@ -20,8 +21,8 @@ from language_models.gpt import GPT
 from language_models.sentenceBERT import sentenceBERT
 from sentiment_classification.sc_bert import sentimentClassificationBERT
 from lib.baseScheduler import LRSchedulerWithWarmup
-MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT,"gpt2":GPT,"sc-bert":sentimentClassificationBERT}
-MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig,"gpt2":GPTConfig, "sc-bert":BERTConfig}
+MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT,"gpt2":GPT,"sc-bert":sentimentClassificationBERT, "vit":VisionTransformer}
+MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig,"gpt2":GPTConfig, "sc-bert":BERTConfig,"vit":VitConfig}
 import os
 import torch
 
