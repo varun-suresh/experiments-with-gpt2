@@ -8,22 +8,25 @@ import math
 
 @dataclass
 class VitConfig: 
-    d_emb = 256
+    d_emb = 192
     img_size = 32
-    n_heads = 8
-    n_blocks = 6
+    n_heads = 12
+    n_blocks = 9
     n_classes = 10
-    patch_size = 8
+    patch_size = 4
+    num_patches = 64 # (img_size // patch_size)**2
     d_seq = (img_size // patch_size)**2 # Assumes a square image
+    dropout = 0.1
 
-class TokenEmbedding(nn.Module):
+class PatchEmbedding(nn.Module):
     def __init__(self,config):
-        super(TokenEmbedding,self).__init__()
+        super(PatchEmbedding,self).__init__()
         self.conv = nn.Conv2d(3,config.d_emb,kernel_size=config.patch_size,stride=config.patch_size)
-        self.bn = nn.BatchNorm2d(config.d_emb)
     
     def forward(self,x):
-        x = self.bn(self.conv(x))
+        # x -> (B,3,img_size,img_size)
+        x = self.conv(x)
+        x = x.flatten(2).transpose(1,2)
         return x
 
 class MultiHeadedAttentionBlock(nn.Module):
@@ -35,6 +38,7 @@ class MultiHeadedAttentionBlock(nn.Module):
         self.value = nn.Linear(config.d_emb,config.d_emb)
         # Output projection
         self.proj = nn.Linear(config.d_emb,config.d_emb)
+        self.resid_dropout = nn.Dropout(config.dropout)
     
     def forward(self,x):
         B,ns,d = x.size() #Batch size, sequence length, embedding dimension(same as config.d_emb)
@@ -46,19 +50,20 @@ class MultiHeadedAttentionBlock(nn.Module):
         v = v.view(B,ns,self.config.n_heads,d // self.config.n_heads).transpose(1,2) # (B,ns,n_heads,d_k) -> (B,n_heads,ns,d_k)
         attn = nn.functional.softmax(q@k.transpose(-2,-1)/math.sqrt(d/self.config.n_heads),dim=-1)@v
         attn = attn.transpose(1,2).contiguous().view(B,ns,d)
-        attn = self.proj(attn)
+        attn = self.resid_dropout(self.proj(attn))
         return attn
 
 class FeedForwardBlock(nn.Module):
     def __init__(self,config):
         super(FeedForwardBlock,self).__init__()
-        self.ff1 = nn.Linear(config.d_emb, 4*config.d_emb)
+        self.ff1 = nn.Linear(config.d_emb, 2*config.d_emb)
         self.gelu = nn.GELU()
-        self.ff2 = nn.Linear(4*config.d_emb,config.d_emb)
-    
+        self.ff2 = nn.Linear(2*config.d_emb,config.d_emb)
+        self.resid_dropout = nn.Dropout(config.dropout)
+
     def forward(self,x):
         x = self.gelu(self.ff1(x))
-        x = self.ff2(x)
+        x = self.resid_dropout(self.ff2(x))
         return x
 
 class TransformerBlock(nn.Module):
@@ -78,20 +83,27 @@ class VisionTransformer(nn.Module):
     def __init__(self,config):
         super(VisionTransformer,self).__init__()
         self.config = config
-        self.te = TokenEmbedding(config)
-        self.pe = nn.Embedding(config.d_seq+1,config.d_emb) # +1 is for CLS token
+        self.patch_embedding = PatchEmbedding(config)
+        self.cls_token = nn.Parameter(torch.randn(1,1,config.d_emb))
+        self.position_embedding = nn.Parameter(torch.randn(1,config.num_patches+1,config.d_emb))
+        self.dropout = nn.Dropout(config.dropout)
         self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_blocks)])
         self.classification_layer = nn.Linear(config.d_emb,config.n_classes) # CIFAR 10
 
     def forward(self,x):
         B,C,H,W = x.size()
         device = x.device
-        n_patches = (H // self.config.patch_size) * (W // self.config.patch_size)
-        token_embedding = torch.zeros((B,n_patches+1,self.config.d_emb)).to(device) # Additional CLS token
-        token_embedding[:,1:] = self.te(x).reshape((B,self.config.d_emb,n_patches)).transpose(1,2)
-        position_embedding = self.pe(torch.arange(0,self.config.d_seq+1).to(device))
-        x = token_embedding + position_embedding
+        patch_emb = self.patch_embedding(x) # (B,num_patches,d_emb)
+        cls_tok = self.cls_token.expand(B,-1,-1) #(B,1,d_emb)
+        patch_emb = torch.cat((cls_tok,patch_emb),dim=1) #(B,num_patches+1,d_emb)
+        
+        x = self.dropout(patch_emb + self.position_embedding)
         for block in self.blocks:
             x = block(x)
-        return self.classification_layer(x[:,0,:])
+        return self.classification_layer(x[:,0])
 
+if __name__ == "__main__":
+    config = VitConfig()
+    pe = PatchEmbedding(config)
+    x = torch.rand(1,3,32,32)
+    print(pe(x).size())

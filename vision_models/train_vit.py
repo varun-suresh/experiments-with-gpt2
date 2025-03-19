@@ -21,20 +21,20 @@ class VitTrainConfig:
     always_save_checkpoint:bool = True
 
     # data
-    batch_size:int = 128
+    batch_size:int = 512
 
     # AdamW optimizer
-    learning_rate:float = 6e-3
-    max_iters:int = 30000
+    learning_rate:float = 0.001
+    max_iters:int = 100000
     beta1: float = 0.9
-    beta2: float = 0.95
+    beta2: float = 0.999
     grad_clip:float = 1.0
 
     #device
     device:str = "cuda"
 
     # Gradient Accumulation
-    micro_batch_size:int = 64 
+    micro_batch_size:int = 256
 
     step_size:int = 30000
     warmup_iters:int = 10
