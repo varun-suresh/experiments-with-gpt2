@@ -10,7 +10,7 @@ class cifar10(Dataset):
         self.split = split
         self.data = load_dataset("uoft-cs/cifar10")[split]
         self.mean = torch.tensor([0.4914, 0.4822, 0.4465])
-        self.std = torch.tensor([0.2023, 0.1994, 0.2010])
+        self.std = torch.tensor([0.2470, 0.2435, 0.2615])
         self.train_transforms = v2.Compose([
                                             v2.RandomCrop(size=(32,32),padding=4),
                                             v2.RandomHorizontalFlip(0.5),
