@@ -18,14 +18,14 @@ class VitTrainConfig:
     model_type = "vit"
     
     init_from:str = "scratch" # 'scratch' or 'resume' - it will resume from the latest checkpoint
-    always_save_checkpoint:bool = True
+    always_save_checkpoint:bool = False
 
     # data
     batch_size:int = 512
 
     # AdamW optimizer
     learning_rate:float = 0.001
-    max_iters:int = 100000
+    max_iters:int = 50000
     beta1: float = 0.9
     beta2: float = 0.999
     grad_clip:float = 1.0
@@ -36,8 +36,8 @@ class VitTrainConfig:
     # Gradient Accumulation
     micro_batch_size:int = 256
 
-    step_size:int = 30000
-    warmup_iters:int = 10
+    step_size:int = 15000
+    warmup_iters:int = 1000
     freeze_layers:int = 0
 
 class Trainer(BaseTrainer):
