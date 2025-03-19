@@ -100,6 +100,8 @@ class BaseTrainer(ABC):
     def train(self):
         print(f"Training..")
         self.model.train()
+        n_parameters = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"Number of parameters : {n_parameters}")
         if self.config.freeze_layers > 0:
             self.freeze_layers(self.config.freeze_layers)
 
