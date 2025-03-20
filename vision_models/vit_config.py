@@ -17,9 +17,9 @@ class VitTrainConfig:
     # I/O
     out_dir:str = "out/vit"
     checkpoint_name: str = "vit_ckpt_cifar.pt"
-    eval_interval:int = 2000
-    eval_iters:int = 100
-    eval_size = 2000
+    # eval_interval:int = 2000
+    eval_iters:int = 10
+    eval_size = 200
     eval_only:bool = False
     model_type:str = "vit"
     
@@ -30,11 +30,17 @@ class VitTrainConfig:
     batch_size:int = 512
 
     # AdamW optimizer
-    learning_rate:float = 0.001
-    max_iters:int = 50000
+    learning_rate:float = 0.0001
+    # max_iters:int = 50000
+    epochs = 200
     beta1: float = 0.9
     beta2: float = 0.999
     grad_clip:float = 1.0
+
+    # Cosine Scheduler
+    min_lr: float = 1e-5
+    decay_iters: int = 200
+    warmup_iters:int = 1
 
     #device
     device:str = "cuda"
@@ -42,8 +48,6 @@ class VitTrainConfig:
     # Gradient Accumulation
     micro_batch_size:int = 256
 
-    step_size:int = 15000
-    warmup_iters:int = 1000
     freeze_layers:int = 0
 
 @dataclass

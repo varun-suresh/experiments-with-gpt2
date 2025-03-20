@@ -45,9 +45,9 @@ class MultiHeadedAttentionBlock(nn.Module):
 class FeedForwardBlock(nn.Module):
     def __init__(self,config):
         super(FeedForwardBlock,self).__init__()
-        self.ff1 = nn.Linear(config.d_emb, 2*config.d_emb)
+        self.ff1 = nn.Linear(config.d_emb, 4*config.d_emb)
         self.gelu = nn.GELU()
-        self.ff2 = nn.Linear(2*config.d_emb,config.d_emb)
+        self.ff2 = nn.Linear(4*config.d_emb,config.d_emb)
         self.resid_dropout = nn.Dropout(config.dropout)
 
     def forward(self,x):

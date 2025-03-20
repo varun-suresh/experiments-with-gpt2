@@ -1,8 +1,10 @@
+import torch
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import random_split
 
 from lib.baseTrainer import BaseTrainer
+from lib.baseScheduler import CosineSchedulerWithWarmup
 from lib.baseEval import BaseEval
 
 from vision_models.cifar10 import cifar10
@@ -21,7 +23,21 @@ class Trainer(BaseTrainer):
 
     def run_inference(self,batch):
         return self.model(batch["img"].to(self.config.device))
-    
+
+    def load_optimizer_scheduler(self):
+        self.optimizer = torch.optim.AdamW(self.model.parameters(),
+            lr=self.config.learning_rate,
+            betas=(self.config.beta1,self.config.beta2))
+        self.scheduler = CosineSchedulerWithWarmup(self.optimizer,
+                                               lr=self.config.learning_rate,
+                                               min_lr=self.config.min_lr,
+                                               decay_iters=self.config.decay_iters,
+                                               warmup_iters=self.config.warmup_iters)
+        if self.config.init_from == "resume":
+            self.optimizer.load_state_dict(self.ckpt["optimizer"])
+            self.scheduler.load_state_dict(self.ckpt["scheduler"])
+        self.optimizer.zero_grad()
+ 
 class Eval(BaseEval):
     def __init__(self,test_set,test_config):
         super(Eval, self).__init__(test_set,test_config)
@@ -46,6 +62,6 @@ def eval():
     evaluator.evaluate()
 
 if __name__ == "__main__":
-    # train()
-    eval()
+    train()
+    # eval()
 
