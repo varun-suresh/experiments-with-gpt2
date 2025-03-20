@@ -97,53 +97,56 @@ class BaseTrainer(ABC):
             self.freeze_layers(self.config.freeze_layers)
 
         if self.config.init_from == "resume":
-            start_iter = self.ckpt["iter_num"]
+            start_epoch = self.ckpt["epoch"]
             best_val_loss = self.ckpt["best_val_loss"]
         else:
-            start_iter = 0
+            start_epoch = 0
             best_val_loss = 1e9
         
         dl = self.create_dataloader(self.train_set) 
         accumulation_steps = self.config.batch_size // self.config.micro_batch_size
-
-        for self.iter_num in tqdm(range(start_iter, self.config.max_iters)):
-            if self.config.grad_clip != 0.0:
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.config.grad_clip)
-                       
-            if self.iter_num % self.config.eval_interval == 0:
-                losses = self.estimate_losses()
-                errors = self.calculate_error()
-                print(f"Step: {self.iter_num}\nTrain Loss: {losses['train']}\nValidation Loss:{losses['val']}")
-                print(f"Train Error: {errors['train']}\nValidation Error: {errors['val']}\nTest Error: {errors['test']}")
-                [self.writer.add_scalar(f"Loss/{split}", loss,self.iter_num) for split,loss in losses.items()]
-                [self.writer.add_scalar(f"{split} error",error,self.iter_num) for split,error in errors.items()]
-                 
-                if losses["val"] < best_val_loss or self.config.always_save_checkpoint:
-                    best_val_loss = losses["val"]
-                    if self.iter_num > start_iter:
-                        ckpt = {"model": self.model.state_dict(),
-                        "config": asdict(self.config),
-                        "model_config": asdict(self.model_config),
-                        "optimizer": self.optimizer.state_dict(),
-                        "scheduler": self.scheduler.state_dict(),
-                        "iter_num": self.iter_num,
-                        "best_val_loss": best_val_loss}
-                        output_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
-                        print(f"Saving checkpoint to {output_path}")
-                        if not os.path.exists(self.config.out_dir):
-                            os.makedirs(self.config.out_dir)
-                        torch.save(ckpt, output_path)
-            
-            batch = next(iter(dl))
-            model_output = self.run_inference(batch)
-            loss = self.criterion(model_output, batch["label"].to(self.config.device)) / (self.config.micro_batch_size * accumulation_steps)
-            loss.backward()
-
-            if self.iter_num % accumulation_steps == 0:
-                self.optimizer.step()
-                self.scheduler.step()
-                self.optimizer.zero_grad()
+        for epoch in tqdm(range(start_epoch,self.config.epochs)):
+            losses = self.estimate_losses()
+            errors = self.calculate_error()
+            print(f"Epoch: {epoch}\nTrain Loss: {losses['train']}\nValidation Loss:{losses['val']}")
+            print(f"Train Error: {errors['train']}\nValidation Error: {errors['val']}\nTest Error: {errors['test']}")
  
+            self.writer.add_scalars("Loss",{split:loss for split,loss in losses.items()},epoch)
+            self.writer.add_scalars("Error", {split:error for split,error in errors.items()},epoch)
+            self.writer.add_scalar(f"Learning Rate",self.scheduler.get_last_lr()[0],epoch) 
+            if losses["val"] < best_val_loss or self.config.always_save_checkpoint:
+                best_val_loss = losses["val"]
+                if epoch > start_epoch:
+                    ckpt = {"model": self.model.state_dict(),
+                    "config": asdict(self.config),
+                    "model_config": asdict(self.model_config),
+                    "optimizer": self.optimizer.state_dict(),
+                    "scheduler": self.scheduler.state_dict(),
+                    "epoch": epoch,
+                    "best_val_loss": best_val_loss}
+                    output_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
+                    print(f"Saving checkpoint to {output_path}")
+                    if not os.path.exists(self.config.out_dir):
+                        os.makedirs(self.config.out_dir)
+                    torch.save(ckpt, output_path)
+ 
+            for iter_num in tqdm(range(len(dl))):
+                if self.config.grad_clip != 0.0:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.config.grad_clip)
+ 
+                batch = next(iter(dl))
+                model_output = self.run_inference(batch)
+                loss = self.criterion(model_output, batch["label"].to(self.config.device)) / (self.config.micro_batch_size * accumulation_steps)
+                loss.backward()
+
+                if iter_num % accumulation_steps == 0:
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
+                        
+
+               
+            self.scheduler.step()
+    
  
     def estimate_losses(self)->Dict[str,float]:
         self.model.eval()
