@@ -5,27 +5,17 @@ Base Trainer Class with default methods to
 3. Run a training job
 4. Calculate train and test error
 """
+import os
 from abc import ABC,abstractmethod
 from dataclasses import asdict
 from typing import Dict
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from vision_models.resnet_config import ResNetCIFAR10Config
-from vision_models.resnet import ResNetCifar
-from vision_models.vit import VisionTransformer, VitConfig
-from language_models.bert_config import BERTConfig
-from language_models.sentenceBERT_config import sentenceBERTConfig
-from language_models.bert import BERT
-from language_models.gpt_config import GPTConfig
-from language_models.gpt import GPT
-from language_models.sentenceBERT import sentenceBERT
-from sentiment_classification.sc_bert import sentimentClassificationBERT
-from lib.baseScheduler import LRSchedulerWithWarmup
-MODELS = {"resnet-cifar": ResNetCifar, "bert": BERT, "sentence-bert": sentenceBERT,"gpt2":GPT,"sc-bert":sentimentClassificationBERT, "vit":VisionTransformer}
-MODEL_CONFIGS = {"resnet-cifar": ResNetCIFAR10Config, "bert": BERTConfig, "sentence-bert": sentenceBERTConfig,"gpt2":GPTConfig, "sc-bert":BERTConfig,"vit":VitConfig}
-import os
 import torch
+from lib.baseScheduler import LRSchedulerWithWarmup
+from lib.model_lib import AvailableModels
 
+available_models = AvailableModels()
 class BaseTrainer(ABC):
     def __init__(self,config,train_set,val_set,test_set,criterion):
         self.config = config
@@ -41,21 +31,22 @@ class BaseTrainer(ABC):
         """
         Loads the model based on the config
         """
+        model_def, model_config = available_models.get(self.config.model_type) 
         if self.config.init_from == "resume":
             ckpt_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
             print(f"Loading model from {ckpt_path}")
             self.ckpt = torch.load(ckpt_path, map_location=self.config.device)
-            self.model_config = MODEL_CONFIGS.get(self.config.model_type)(**self.ckpt["model_config"])
+            self.model_config = model_config(**self.ckpt["model_config"])
             self.model_config.load_from_checkpoint = True
             #Update some params
             # model_config.load_from_checkpoint = model_config.load_from_checkpoint
             # model_config.checkpoint_path = self.model_config.checkpoint_path
             # self.model_config = model_config
-            self.model = MODELS.get(self.config.model_type)(self.model_config)
+            self.model = model_def(self.model_config) 
             self.model.load_state_dict(self.ckpt["model"])
         else:
-            self.model_config = MODEL_CONFIGS.get(self.config.model_type)()
-            self.model = MODELS.get(self.config.model_type)(self.model_config)
+            self.model_config = model_config()
+            self.model = model_def(self.model_config)
         self.model.to(self.config.device)
 
     def load_optimizer_scheduler(self):
