@@ -1,22 +1,11 @@
 """
 Implementation of Vision Transformer from scratch
 """
-from dataclasses import dataclass
 import torch
 from torch import nn
 import math
 
-@dataclass
-class VitConfig: 
-    d_emb = 192
-    img_size = 32
-    n_heads = 12
-    n_blocks = 9
-    n_classes = 10
-    patch_size = 4
-    num_patches = 64 # (img_size // patch_size)**2
-    d_seq = (img_size // patch_size)**2 # Assumes a square image
-    dropout = 0.1
+from vision_models.vit_config import VitConfig
 
 class PatchEmbedding(nn.Module):
     def __init__(self,config):

@@ -1,44 +1,12 @@
-from dataclasses import dataclass
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import random_split
 
-from cifar10 import cifar10
 from lib.baseTrainer import BaseTrainer
+from lib.baseEval import BaseEval
 
-@dataclass
-class VitTrainConfig:
-    # I/O
-    out_dir:str = "out/vit"
-    checkpoint_name: str = "vit_ckpt_cifar.pt"
-    eval_interval:int = 2000
-    eval_iters:int = 100
-    eval_size = 2000
-    eval_only:bool = False
-    model_type = "vit"
-    
-    init_from:str = "scratch" # 'scratch' or 'resume' - it will resume from the latest checkpoint
-    always_save_checkpoint:bool = False
-
-    # data
-    batch_size:int = 512
-
-    # AdamW optimizer
-    learning_rate:float = 0.001
-    max_iters:int = 50000
-    beta1: float = 0.9
-    beta2: float = 0.999
-    grad_clip:float = 1.0
-
-    #device
-    device:str = "cuda"
-
-    # Gradient Accumulation
-    micro_batch_size:int = 256
-
-    step_size:int = 15000
-    warmup_iters:int = 1000
-    freeze_layers:int = 0
+from vision_models.cifar10 import cifar10
+from vision_models.vit_config import VitTrainConfig, VitTestConfig
 
 class Trainer(BaseTrainer):
     def __init__(self, config,train_set,val_set,test_set,criterion):
@@ -54,9 +22,12 @@ class Trainer(BaseTrainer):
     def run_inference(self,batch):
         return self.model(batch["img"].to(self.config.device))
     
+class Eval(BaseEval):
+    def __init__(self,test_set,test_config):
+        super(Eval, self).__init__(test_set,test_config)
 
 
-if __name__ == "__main__":
+def train():
     all_train_data = cifar10("train")
     train_size = int(0.9*len(all_train_data))
     val_size = len(all_train_data) - train_size
@@ -67,3 +38,14 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss(reduction="sum")
     trainer = Trainer(config,train_set, val_set, test_set,criterion)
     trainer.train()
+
+def eval():
+    test_set = cifar10("test")
+    test_config = VitTestConfig()
+    evaluator = Eval(test_set,test_config)
+    evaluator.evaluate()
+
+if __name__ == "__main__":
+    # train()
+    eval()
+
