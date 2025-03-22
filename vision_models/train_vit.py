@@ -1,3 +1,4 @@
+import click
 import torch
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
@@ -42,15 +43,16 @@ class Eval(BaseEval):
     def __init__(self,test_set,test_config):
         super(Eval, self).__init__(test_set,test_config)
 
-
-def train():
+@click.command()
+@click.option("--out",default="out/vit",help="Output directory")
+def train(out):
     all_train_data = cifar10("train")
     train_size = int(0.9*len(all_train_data))
     val_size = len(all_train_data) - train_size
     train_set, val_set = random_split(all_train_data,[train_size,val_size])
     test_set = cifar10("test")
     test_set = random_split(test_set,[len(test_set)])[0]
-    config = VitTrainConfig()
+    config = VitTrainConfig(out_dir=out)
     criterion = nn.CrossEntropyLoss(reduction="sum")
     trainer = Trainer(config,train_set, val_set, test_set,criterion)
     trainer.train()
@@ -61,7 +63,7 @@ def eval():
     evaluator = Eval(test_set,test_config)
     evaluator.evaluate()
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     train()
-    # eval()
+    eval()
 
