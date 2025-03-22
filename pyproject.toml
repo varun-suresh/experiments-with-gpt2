@@ -27,4 +27,5 @@ dependencies = [
     "nltk>=3.9.1",
     "torchvision>=0.20.1",
     "evaluate>=0.4.3",
+    "click>=8.1.8",
 ]
