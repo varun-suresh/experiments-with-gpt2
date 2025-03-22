@@ -2,15 +2,15 @@ from dataclasses import dataclass
 
 @dataclass
 class VitConfig: 
-    d_emb = 192
-    img_size = 32
-    n_heads = 12
-    n_blocks = 9
-    n_classes = 10
-    patch_size = 4
-    num_patches = 64 # (img_size // patch_size)**2
-    d_seq = (img_size // patch_size)**2 # Assumes a square image
-    dropout = 0.2
+    d_emb:int = 192
+    img_size:int = 32
+    n_heads:int = 8
+    n_blocks:int = 6
+    n_classes:int = 10
+    patch_size:int = 4
+    num_patches:int = (img_size // patch_size)**2 # Assumes a square image 
+    dropout:float = 0.1
+    cls_token:bool = True
 
 @dataclass
 class VitTrainConfig:
@@ -30,7 +30,7 @@ class VitTrainConfig:
     batch_size:int = 512
 
     # AdamW optimizer
-    learning_rate:float = 0.0001
+    learning_rate:float = 1e-4
     # max_iters:int = 50000
     epochs = 200
     beta1: float = 0.9
