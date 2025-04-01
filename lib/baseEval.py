@@ -43,4 +43,4 @@ class BaseEval(ABC):
                 predictions = torch.argmax(logits,dim=1)
                 labels = torch.tensor(batch["label"]).to(self.test_config.device)
                 correct += torch.eq(predictions,labels).sum()
-        print(f"Accuracy: {correct/len(self.test_set)}\nError: {1-correct/len(self.test_set)}")
+        print(f"Accuracy: {correct/len(self.test_set)}\nError: {1-correct/len(self.test_set)}\nCorrect/Total: {correct}/{len(self.test_set)}")
