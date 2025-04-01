@@ -103,7 +103,6 @@ class BaseTrainer(ABC):
             start_epoch = 0
             best_val_loss = 1e9
         
-        dl = self.create_dataloader(self.train_set) 
         accumulation_steps = self.config.batch_size // self.config.micro_batch_size
         for epoch in tqdm(range(start_epoch,self.config.epochs)):
             losses = self.estimate_losses()
@@ -129,7 +128,8 @@ class BaseTrainer(ABC):
                     if not os.path.exists(self.config.out_dir):
                         os.makedirs(self.config.out_dir)
                     torch.save(ckpt, output_path)
- 
+
+            dl = self.create_dataloader(self.train_set) 
             for iter_num in tqdm(range(len(dl))):
                 if self.config.grad_clip != 0.0:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.config.grad_clip)
