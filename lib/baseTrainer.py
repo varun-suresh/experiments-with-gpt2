@@ -48,6 +48,8 @@ class BaseTrainer(ABC):
             self.model_config = model_config()
             self.model = model_def(self.model_config)
         self.model.to(self.config.device)
+        n_parameters = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"Number of parameters : {n_parameters}")
 
     def load_optimizer_scheduler(self):
         """
@@ -88,11 +90,37 @@ class BaseTrainer(ABC):
         """
         pass
 
+    def log_epoch_info(self,epoch):
+        losses = self.estimate_losses()
+        errors = self.calculate_error()
+        print(f"Epoch: {epoch}\nTrain Loss: {losses['train']}\nValidation Loss:{losses['val']}")
+        print(f"Train Error: {errors['train']}\nValidation Error: {errors['val']}\nTest Error: {errors['test']}")
+
+        self.writer.add_scalars("Loss",{split:loss for split,loss in losses.items()},epoch)
+        self.writer.add_scalars("Error", {split:error for split,error in errors.items()},epoch)
+        self.writer.add_scalar(f"Learning Rate",self.scheduler.get_last_lr()[0],epoch) 
+
+    def save_best_model(self, epoch):
+        if losses["val"] < best_val_loss or self.config.always_save_checkpoint:
+            best_val_loss = losses["val"]
+            if epoch > start_epoch:
+                ckpt = {"model": self.model.state_dict(),
+                "config": asdict(self.config),
+                "model_config": asdict(self.model_config),
+                "optimizer": self.optimizer.state_dict(),
+                "scheduler": self.scheduler.state_dict(),
+                "epoch": epoch,
+                "best_val_loss": best_val_loss}
+                output_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
+                print(f"Saving checkpoint to {output_path}")
+                if not os.path.exists(self.config.out_dir):
+                    os.makedirs(self.config.out_dir)
+                    torch.save(ckpt, output_path)
+
+
     def train(self):
         print(f"Training..")
         self.model.train()
-        n_parameters = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"Number of parameters : {n_parameters}")
         if self.config.freeze_layers > 0:
             self.freeze_layers(self.config.freeze_layers)
 
@@ -103,33 +131,11 @@ class BaseTrainer(ABC):
             start_epoch = 0
             best_val_loss = 1e9
         
+        dl = self.create_dataloader(self.train_set) 
         accumulation_steps = self.config.batch_size // self.config.micro_batch_size
         for epoch in tqdm(range(start_epoch,self.config.epochs)):
-            losses = self.estimate_losses()
-            errors = self.calculate_error()
-            print(f"Epoch: {epoch}\nTrain Loss: {losses['train']}\nValidation Loss:{losses['val']}")
-            print(f"Train Error: {errors['train']}\nValidation Error: {errors['val']}\nTest Error: {errors['test']}")
- 
-            self.writer.add_scalars("Loss",{split:loss for split,loss in losses.items()},epoch)
-            self.writer.add_scalars("Error", {split:error for split,error in errors.items()},epoch)
-            self.writer.add_scalar(f"Learning Rate",self.scheduler.get_last_lr()[0],epoch) 
-            if losses["val"] < best_val_loss or self.config.always_save_checkpoint:
-                best_val_loss = losses["val"]
-                if epoch > start_epoch:
-                    ckpt = {"model": self.model.state_dict(),
-                    "config": asdict(self.config),
-                    "model_config": asdict(self.model_config),
-                    "optimizer": self.optimizer.state_dict(),
-                    "scheduler": self.scheduler.state_dict(),
-                    "epoch": epoch,
-                    "best_val_loss": best_val_loss}
-                    output_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
-                    print(f"Saving checkpoint to {output_path}")
-                    if not os.path.exists(self.config.out_dir):
-                        os.makedirs(self.config.out_dir)
-                    torch.save(ckpt, output_path)
+            self.log_epoch_info(epoch)
 
-            dl = self.create_dataloader(self.train_set) 
             for iter_num in tqdm(range(len(dl))):
                 if self.config.grad_clip != 0.0:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.config.grad_clip)
@@ -194,10 +200,9 @@ class BaseTrainer(ABC):
         self.model.eval()
 
         train_subset = self.create_subset(self.train_set)
-        test_subset = self.create_subset(self.test_set)
         val_subset = self.create_subset(self.val_set)
 
-        pairs = [("train",train_subset),("val",val_subset),("test",test_subset)]
+        pairs = [("train",train_subset),("val",val_subset),("test",self.test_set)]
 
         errors = {}
         for split,subset in pairs:
