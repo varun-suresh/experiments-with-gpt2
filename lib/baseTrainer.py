@@ -38,6 +38,8 @@ class BaseTrainer(ABC):
             self.ckpt = torch.load(ckpt_path, map_location=self.config.device)
             self.model_config = model_config(**self.ckpt["model_config"])
             self.model_config.load_from_checkpoint = True
+            self.start_epoch = self.ckpt["epoch"]
+            self.best_val_error = self.ckpt["best_val_error"]
             #Update some params
             # model_config.load_from_checkpoint = model_config.load_from_checkpoint
             # model_config.checkpoint_path = self.model_config.checkpoint_path
@@ -47,9 +49,16 @@ class BaseTrainer(ABC):
         else:
             self.model_config = model_config()
             self.model = model_def(self.model_config)
+            self.start_epoch = 0
+            self.best_val_loss = 1e9
         self.model.to(self.config.device)
         n_parameters = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"Number of parameters : {n_parameters}")
+        print(f"Loaded Model.Number of parameters = {n_parameters}")
+        if self.config.freeze_layers > 0:
+            self.freeze_layers(self.config.freeze_layers)
+
+
+
 
     def load_optimizer_scheduler(self):
         """
@@ -90,9 +99,8 @@ class BaseTrainer(ABC):
         """
         pass
 
-    def log_epoch_info(self,epoch):
-        losses = self.estimate_losses()
-        errors = self.calculate_error()
+    def log_epoch_info(self,epoch,losses, errors):
+
         print(f"Epoch: {epoch}\nTrain Loss: {losses['train']}\nValidation Loss:{losses['val']}")
         print(f"Train Error: {errors['train']}\nValidation Error: {errors['val']}\nTest Error: {errors['test']}")
 
@@ -100,42 +108,28 @@ class BaseTrainer(ABC):
         self.writer.add_scalars("Error", {split:error for split,error in errors.items()},epoch)
         self.writer.add_scalar(f"Learning Rate",self.scheduler.get_last_lr()[0],epoch) 
 
-    def save_best_model(self, epoch):
-        if losses["val"] < best_val_loss or self.config.always_save_checkpoint:
-            best_val_loss = losses["val"]
-            if epoch > start_epoch:
-                ckpt = {"model": self.model.state_dict(),
-                "config": asdict(self.config),
-                "model_config": asdict(self.model_config),
-                "optimizer": self.optimizer.state_dict(),
-                "scheduler": self.scheduler.state_dict(),
-                "epoch": epoch,
-                "best_val_loss": best_val_loss}
-                output_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
-                print(f"Saving checkpoint to {output_path}")
-                if not os.path.exists(self.config.out_dir):
-                    os.makedirs(self.config.out_dir)
-                    torch.save(ckpt, output_path)
+    def save_model(self, epoch):
+        ckpt = {"model": self.model.state_dict(),
+            "config": asdict(self.config),
+            "model_config": asdict(self.model_config),
+            "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
+            "epoch": epoch,
+            "best_val_loss": self.best_val_loss}
+        output_path = os.path.join(self.config.out_dir,self.config.checkpoint_name)
+        print(f"Saving checkpoint to {output_path}")
+        if not os.path.exists(self.config.out_dir):
+            os.makedirs(self.config.out_dir)
+            torch.save(ckpt, output_path)
 
 
     def train(self):
         print(f"Training..")
         self.model.train()
-        if self.config.freeze_layers > 0:
-            self.freeze_layers(self.config.freeze_layers)
-
-        if self.config.init_from == "resume":
-            start_epoch = self.ckpt["epoch"]
-            best_val_loss = self.ckpt["best_val_loss"]
-        else:
-            start_epoch = 0
-            best_val_loss = 1e9
-        
+       
         dl = self.create_dataloader(self.train_set) 
         accumulation_steps = self.config.batch_size // self.config.micro_batch_size
-        for epoch in tqdm(range(start_epoch,self.config.epochs)):
-            self.log_epoch_info(epoch)
-
+        for epoch in tqdm(range(self.start_epoch,self.config.epochs)):
             for iter_num in tqdm(range(len(dl))):
                 if self.config.grad_clip != 0.0:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.config.grad_clip)
@@ -152,6 +146,15 @@ class BaseTrainer(ABC):
 
                
             self.scheduler.step()
+
+            losses = self.estimate_losses()
+            errors = self.calculate_error()
+            self.log_epoch_info(epoch,losses,errors)
+            if self.best_val_loss > losses["val"] or self.config.always_save_checkpoint:
+                self.best_val_loss = losses["val"]
+                self.save_model(epoch)
+ 
+
     
  
     def estimate_losses(self)->Dict[str,float]:
