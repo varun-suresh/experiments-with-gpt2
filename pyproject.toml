@@ -29,3 +29,11 @@ dependencies = [
     "evaluate>=0.4.3",
     "click>=8.1.8",
 ]
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+lint.select = ["E", "F", "I"]
+lint.ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
