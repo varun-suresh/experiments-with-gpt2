@@ -144,7 +144,7 @@ class BaseTrainer(ABC):
 
         accumulation_steps = self.config.batch_size // self.config.micro_batch_size
         for epoch in tqdm(range(self.start_epoch, self.config.epochs)):
-            for iter_num in tqdm(range(len(self.train_dataloader.dataset))):
+            for iter_num in tqdm(range(len(self.train_dataloader))):
                 if self.config.grad_clip != 0.0:
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(), self.config.grad_clip
