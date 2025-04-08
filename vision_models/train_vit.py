@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import random_split
+from torchvision.transforms import v2, ToTensor
 
 from lib.baseTrainer import BaseTrainer
 from lib.baseScheduler import CosineSchedulerWithWarmup
@@ -17,10 +18,28 @@ class Trainer(BaseTrainer):
         super(Trainer, self).__init__(config, train_set, val_set, test_set, criterion)
 
     def create_dataloader(self, dataset):
+        train_transforms, test_transforms = create_train_test_transforms()
+
         dataloader = DataLoader(
-            dataset, batch_size=self.config.micro_batch_size, shuffle=True
+            dataset,
+            batch_size=self.config.micro_batch_size,
+            shuffle=True,
+            collate_fn=self.make_collate_fn(train_transforms),
         )
         return dataloader
+
+    def make_collate_fn(self, transforms):
+        def collate_fn(batch):
+            imgs = torch.stack([item["img"] for item in batch])  # (B, C, H, W), uint8
+            labels = torch.tensor([item["label"] for item in batch])
+            imgs = imgs.to("cuda", non_blocking=True)
+            labels = labels.to("cuda", non_blocking=True)
+
+            imgs = transforms(imgs)  # Now apply batch-wise GPU transforms
+
+            return {"img": imgs, "label": labels}
+
+        return collate_fn
 
     def freeze_layers(self):
         print("Not implemented yet")
@@ -50,6 +69,27 @@ class Trainer(BaseTrainer):
 class Eval(BaseEval):
     def __init__(self, test_set, test_config):
         super(Eval, self).__init__(test_set, test_config)
+
+
+def create_train_test_transforms():
+    mean = torch.tensor([0.4914, 0.4822, 0.4465])
+    std = torch.tensor([0.2023, 0.1994, 0.2010])
+    train_transforms = v2.Compose(
+        [
+            v2.RandomCrop(size=32, padding=4),
+            v2.RandomHorizontalFlip(0.5),
+            v2.ToDtype(torch.float32, scale=True),
+            v2.Normalize(mean=mean, std=std),
+        ]
+    )
+
+    test_transforms = v2.Compose(
+        [
+            v2.ToDtype(torch.float32, scale=True),
+            v2.Normalize(mean=mean, std=std),
+        ]
+    )
+    return train_transforms, test_transforms
 
 
 @click.command()
