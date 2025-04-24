@@ -22,11 +22,11 @@ class BaseTrainer(ABC):
     def __init__(self, config, train_set, val_set, test_set, criterion):
         self.config = config
         self.train_set = train_set
-        self.train_dataloader = self.create_dataloader(train_set)
+        self.train_dataloader = self.create_dataloader("train")
         self.val_set = val_set
-        self.val_dataloader = self.create_dataloader(val_set)
+        self.val_dataloader = self.create_dataloader("val")
         self.test_set = test_set
-        self.test_dataloader = self.create_dataloader(test_set)
+        self.test_dataloader = self.create_dataloader("test")
         self.criterion = criterion
         self.writer = SummaryWriter(log_dir=config.out_dir)
         self.load_model()
@@ -93,7 +93,7 @@ class BaseTrainer(ABC):
         pass
 
     @abstractmethod
-    def create_dataloader(self, dataset, batch_size, collate_fn=None, shuffle=True):
+    def create_dataloader(self, split):
         """
         Should return a dataloader. The dataloader must have a field label
         """

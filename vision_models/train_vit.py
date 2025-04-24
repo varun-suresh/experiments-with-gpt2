@@ -17,14 +17,23 @@ class Trainer(BaseTrainer):
     def __init__(self, config, train_set, val_set, test_set, criterion):
         super(Trainer, self).__init__(config, train_set, val_set, test_set, criterion)
 
-    def create_dataloader(self, dataset):
+    def create_dataloader(self, split="train"):
         train_transforms, test_transforms = create_train_test_transforms()
+        if split == "train":
+            transforms = train_transforms
+            dataset = self.train_set
+        elif split == "val":
+            transforms = test_transforms
+            dataset = self.val_set
+        else:
+            transforms = test_transforms
+            dataset = self.test_set
 
         dataloader = DataLoader(
             dataset,
             batch_size=self.config.micro_batch_size,
             shuffle=True,
-            collate_fn=self.make_collate_fn(train_transforms),
+            collate_fn=self.make_collate_fn(transforms),
         )
         return dataloader
 
